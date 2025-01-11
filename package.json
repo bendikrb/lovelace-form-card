@@ -1,0 +1,48 @@
+{
+  "name": "ha-form-card",
+  "version": "0.0.0",
+  "type": "module",
+  "description": "",
+  "keywords": [
+    "home-assistant",
+    "homeassistant",
+    "hass",
+    "lovelace",
+    "custom-cards",
+    "form"
+  ],
+  "module": "ha-form-card",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bendikrb/ha-form-card"
+  },
+  "author": "Bendik R. Brenne <bendik@konstant.no>",
+  "license": "MIT",
+  "dependencies": {
+    "lit": "2.8.0",
+    "lit-html": "2.8.0",
+    "memoize-one": "6.0.0",
+    "home-assistant-js-websocket": "^9.4.0",
+    "tslib": "^2.6.2",
+    "superstruct": "^2.0.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.23.6",
+    "@babel/preset-env": "^7.23.6",
+    "@rollup/plugin-babel": "^6.0.4",
+    "@rollup/plugin-commonjs": "^28.0.1",
+    "@rollup/plugin-json": "^6.1.0",
+    "@rollup/plugin-node-resolve": "^15.3.0",
+    "@rollup/plugin-terser": "^0.4.4",
+    "@rollup/plugin-typescript": "^12.1.1",
+    "@material/mwc-ripple": "^0.27.0",
+    "prettier": "^3.3.3",
+    "rollup": "^4.18.0",
+    "rollup-plugin-serve": "^1.1.1",
+    "typescript": "^5.6.3"
+  },
+  "scripts": {
+    "build": "rollup -c --bundleConfigAsCjs",
+    "watch": "rollup -c --watch"
+  }
+}
