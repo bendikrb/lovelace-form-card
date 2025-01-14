@@ -1,5 +1,4 @@
-import { boolean, enums, Infer, object, optional } from "superstruct";
-import { HaFormSchema } from "../../utils/form/ha-form";
+import { boolean, Infer, object, optional } from "superstruct";
 import { Layout, layoutStruct } from "../../utils/layout";
 
 export const appearanceSharedConfigStruct = object({
@@ -13,4 +12,3 @@ export type Appearance = {
   layout: Layout;
   fill_container: boolean;
 };
-

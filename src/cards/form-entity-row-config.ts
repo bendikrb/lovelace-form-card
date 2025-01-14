@@ -1,9 +1,7 @@
 import { ActionConfig, LovelaceCardConfig } from "../ha";
 import type { HaFormSelector } from "../utils/form/ha-form";
 
-
-export type FormEntityRowConfig = LovelaceCardConfig &
-{
+export type FormEntityRowConfig = LovelaceCardConfig & {
   type: string;
   name?: string;
   icon?: string;
@@ -14,8 +12,7 @@ export type FormEntityRowConfig = LovelaceCardConfig &
   secondary?: string;
   state?: string;
   change_action?: ActionConfig;
-}
-
+};
 
 const SELECTOR_SCHEMAS = {
   action: [] as const,

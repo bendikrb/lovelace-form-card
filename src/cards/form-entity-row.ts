@@ -1,8 +1,13 @@
-import { LitElement, CSSResultGroup, html, css, nothing, PropertyValues } from "lit";
-import { customElement, property, state } from 'lit/decorators.js';
+import {
+  LitElement,
+  CSSResultGroup,
+  html,
+  css,
+  nothing,
+  PropertyValues,
+} from "lit";
+import { customElement, property, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
-
-import pjson from "../../package.json";
 
 import memoizeOne from "memoize-one";
 import { UnsubscribeFunc } from "home-assistant-js-websocket";
@@ -19,6 +24,7 @@ import { FORM_ENTITY_ROW_NAME } from "../const";
 
 import { FormEntityRowConfig } from "./form-entity-row-config";
 
+import { applyToStrings } from "../utils/tools";
 
 const OPTIONS = [
   "icon",
@@ -28,8 +34,6 @@ const OPTIONS = [
   "value",
   "entity",
 ] as const;
-// type TemplateKey = (typeof OPTIONS)[number];
-
 
 @customElement(FORM_ENTITY_ROW_NAME)
 export class FormEntityRow extends LitElement {
@@ -44,7 +48,7 @@ export class FormEntityRow extends LitElement {
           name: "value",
           label: name,
           selector: selector && typeof selector === "object" ? selector : {},
-        }
+        },
       ] as const
   );
 
@@ -83,38 +87,22 @@ export class FormEntityRow extends LitElement {
     OPTIONS.forEach((key) => {
       if (
         this._config?.[key] !== config[key] ||
-        this._config?.entity != config.entity
+        this._config?.entity !== config.entity
       ) {
-        this._tryDisconnectKey(key);
+        void this._tryDisconnectKey(key);
       }
     });
 
     this._config = { ...config };
   }
 
-  private async applyFunctionToStrings(obj: any, callback: (value: string) => Promise<string>): Promise<any> {
-    const result: any = {};
-
-    for (const key in obj) {
-      if (typeof obj[key] === 'string') {
-        result[key] = await callback(obj[key]);
-      } else if (typeof obj[key] === 'object' && obj[key] !== null) {
-        result[key] = await this.applyFunctionToStrings(obj[key], callback);
-      } else {
-        result[key] = obj[key];
-      }
-    }
-
-    return result;
-  }
-
   public connectedCallback() {
     super.connectedCallback();
-    this._tryConnect();
+    void this._tryConnect();
   }
 
   public disconnectedCallback() {
-    this._tryDisconnect();
+    void this._tryDisconnect();
   }
 
   public isTemplate(key: string) {
@@ -134,15 +122,18 @@ export class FormEntityRow extends LitElement {
       return;
     }
 
-    this._tryConnect();
+    void this._tryConnect();
   }
 
   private async _tryConnect(): Promise<void> {
     for (const key of OPTIONS) {
-      this._tryConnectKey(key);
+      await this._tryConnectKey(key);
     }
 
-    const selector = await this.applyFunctionToStrings(this._config?.selector, this._renderSelectorTemplate);
+    const selector = await applyToStrings(
+      this._config?.selector,
+      this._renderSelectorTemplate.bind(this)
+    );
     if (selector && this._config) {
       this._config.selector = selector;
     }
@@ -158,7 +149,10 @@ export class FormEntityRow extends LitElement {
     return val.result;
   }
 
-  private async _renderTemplate(template: string, variables: Record<string, any>): Promise<RenderTemplateResult> {
+  private async _renderTemplate(
+    template: string,
+    variables: Record<string, any>
+  ): Promise<RenderTemplateResult> {
     return new Promise<RenderTemplateResult>((resolve, reject) => {
       const unsubscribePromise = subscribeRenderTemplate(
         this.hass.connection,
@@ -279,20 +273,20 @@ export class FormEntityRow extends LitElement {
         ? this._config.icon || "no:icon"
         : undefined;
     // const image = this.config.image;
-    let color = this.getValue("color");
+    const color = this.getValue("color");
 
     const name =
       this.getValue("name") ??
       entity?.attributes?.friendly_name ??
       entity?.entity_id;
     // const secondary = this.getValue("secondary");
-    const state = this.getValue("state") ?? base?.state;
-    const value = this.getValue("value") ?? state;
+    const state_value = this.getValue("state") ?? base?.state;
+    const value = this.getValue("value") ?? state_value;
     // let stateColor = true;
 
     const schema = this._schema(this._config.selector, name);
     const data = {
-      value: value,
+      value,
     };
 
     const has_action = true;
@@ -308,9 +302,7 @@ export class FormEntityRow extends LitElement {
           @action=${this._actionHandler}
           class=${classMap({ pointer: has_action })}
         ></state-badge>
-        <div
-          class=${classMap({ info: true, pointer: has_action })}
-        >
+        <div class=${classMap({ info: true, pointer: has_action })}>
           <ha-form
             .hass=${this.hass}
             .data=${data}
@@ -319,11 +311,7 @@ export class FormEntityRow extends LitElement {
             @value-changed=${this._valueChanged}
           ></ha-form>
         </div>
-        ${show_state ?
-        html`
-              <div class="state">${state}</div>`
-        : nothing
-      }
+        ${show_state ? html` <div class="state">${state}</div>` : nothing}
       </div>
       <div id="staging">
         <hui-generic-entity-row .hass=${this.hass} .config=${this._config}>
@@ -332,12 +320,15 @@ export class FormEntityRow extends LitElement {
     `;
   }
 
-  _computeLabelCallback(s) {
+  _computeLabelCallback(s: any) {
     return s.label ?? s.name;
   }
 
   private async _performAction(action: ActionConfig, value: any) {
-    if (action.action === "call-service" || action.action === "perform-action") {
+    if (
+      action.action === "call-service" ||
+      action.action === "perform-action"
+    ) {
       const variables = {
         value: value.value,
       };
@@ -346,26 +337,29 @@ export class FormEntityRow extends LitElement {
       const serviceData = {};
       for (const k in actionData) {
         if (typeof actionData[k] === "string") {
-          serviceData[k] = (await this._renderTemplate(actionData[k], variables)).result;
+          serviceData[k] = (
+            await this._renderTemplate(actionData[k], variables)
+          ).result;
         } else {
           serviceData[k] = actionData[k];
         }
       }
 
-      const [domain, service] = action.perform_action.split('.');
+      const [domain, service] = action.perform_action.split(".");
       const payload = {
-        domain: domain,
-        service: service,
+        domain,
+        service,
         service_data: serviceData,
+        target: {},
       };
       if (action.target) {
-        payload["target"] = action.target;
+        payload.target = action.target;
       }
 
-      this.hass.callWS({
+      await this.hass.callWS({
         type: "call_service",
         ...payload,
-      })
+      });
     }
   }
 
@@ -373,9 +367,8 @@ export class FormEntityRow extends LitElement {
     ev.stopPropagation();
     const value = { ...ev.detail.value };
     if (this._config?.change_action) {
-      this._performAction(this._config.change_action, value);
+      void this._performAction(this._config.change_action, value);
     }
-
     // If we render the default with an incompatible selector, it risks throwing an exception and not rendering.
     // Clear the default when changing the selector type.
     // if (
@@ -387,6 +380,7 @@ export class FormEntityRow extends LitElement {
   }
 
   static get styles(): CSSResultGroup {
+    // noinspection CssInvalidHtmlTagReference
     return [
       (customElements.get("hui-generic-entity-row") as any)?.styles,
       css`
@@ -418,6 +412,8 @@ export class FormEntityRow extends LitElement {
   }
 }
 
-// if (!customElements.get("form-entity-row")) {
-//   customElements.define("form-entity-row", FormEntityRow);
-// }
+declare global {
+  interface HTMLElementTagNameMap {
+    "form-entity-row": FormEntityRow;
+  }
+}

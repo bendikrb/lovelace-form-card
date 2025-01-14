@@ -7,8 +7,6 @@ export const cardStyle = css`
     flex-direction: column;
     justify-content: var(--layout-align);
     height: auto;
-    display: flex;
-    flex-direction: column;
   }
   ha-card.fill-container {
     height: 100%;
@@ -32,7 +30,7 @@ export const cardStyle = css`
   }
   .actions::-webkit-scrollbar {
     background: transparent; /* Chrome/Safari/Webkit */
-    height: 0px;
+    height: 0;
   }
   .unavailable {
     --main-color: rgb(var(--rgb-warning));

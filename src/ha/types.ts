@@ -230,3 +230,5 @@ export interface HomeAssistant {
 }
 
 export type Constructor<T = any> = new (...args: any[]) => T;
+
+export type ItemPath = (number | string)[];

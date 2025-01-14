@@ -1,6 +1,5 @@
 import type {
   HassEntities,
-  HassEntity,
   HassEntityAttributeBase,
   HassEntityBase,
 } from "home-assistant-js-websocket";

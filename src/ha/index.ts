@@ -29,8 +29,6 @@ export * from "./data/vacuum";
 export * from "./data/ws-templates";
 export * from "./data/ws-themes";
 export * from "./panels/lovelace/common/directives/action-handler-directive";
-export * from "./panels/lovelace/common/entity/turn-on-off-entities";
-export * from "./panels/lovelace/common/entity/turn-on-off-entity";
 export * from "./panels/lovelace/common/handle-actions";
 export * from "./panels/lovelace/common/has-action";
 export * from "./panels/lovelace/common/validate-condition";

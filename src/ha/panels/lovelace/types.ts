@@ -4,7 +4,7 @@ import {
   LovelaceConfig,
 } from "../../data/lovelace";
 import { FrontendLocaleData } from "../../data/translation";
-import { Constructor, HomeAssistant } from "../../types";
+import { Constructor, HomeAssistant } from "../../../ha";
 
 declare global {
   // eslint-disable-next-line
