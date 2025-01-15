@@ -1,5 +1,5 @@
 {
-  "name": "ha-form-card",
+  "name": "lovelace-form-card",
   "version": "0.0.0",
   "description": "",
   "keywords": [
@@ -10,10 +10,10 @@
     "custom-cards",
     "form"
   ],
-  "module": "ha-form-card",
+  "module": "lovelace-form-card",
   "repository": {
     "type": "git",
-    "url": "https://github.com/bendikrb/ha-form-card"
+    "url": "https://github.com/bendikrb/lovelace-form-card"
   },
   "author": "Bendik R. Brenne <bendik@konstant.no>",
   "license": "MIT",
@@ -44,6 +44,7 @@
     "typescript": "^5.6.3"
   },
   "scripts": {
+    "bunbuild": "bun build ./src/form-card.ts --sourcemap=external --minify --outdir=dist",
     "build": "rollup -c --bundleConfigAsCjs",
     "watch": "rollup -c --watch"
   }
