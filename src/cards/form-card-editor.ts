@@ -22,6 +22,7 @@ import {
   FormCardFields,
 } from "./form-card-config";
 import setupCustomlocalize from "../localize";
+
 import "../components/form-card-editor-fields";
 import { FormCardEditorFields } from "../components/form-card-editor-fields";
 import { type HaFormSchema } from "../utils/form/ha-form";
@@ -83,7 +84,7 @@ export class FormCardEditor extends LitElement implements LovelaceCardEditor {
 
   @property({ attribute: false }) public config!: FormCardConfig;
 
-  @query("form-card-editor-test")
+  @query("form-card-editor-fields")
   private _formFields?: FormCardEditorFields;
 
   private _openFields = true;
@@ -139,7 +140,7 @@ export class FormCardEditor extends LitElement implements LovelaceCardEditor {
           ${localize("editor.form.fields_heading.title")}
         </h2>
       </div>
-      <form-card-editor-test
+      <form-card-editor-fields
         role="region"
         .hass=${this.hass}
         aria-labelledby="fields-heading"
@@ -147,7 +148,7 @@ export class FormCardEditor extends LitElement implements LovelaceCardEditor {
         .schema=${schema}
         .disable=${this.disabled}
         @value-changed=${this._fieldsChanged}
-      ></form-card-editor-test>
+      ></form-card-editor-fields>
       ${!("fields" in this._config)
         ? html`
             <ha-button
@@ -193,7 +194,6 @@ export class FormCardEditor extends LitElement implements LovelaceCardEditor {
     };
     console.log("[form-card-editor] _fieldsChanged()");
     fireEvent(this, "config-changed", { config: value });
-    // this._config = value;
   }
 
   private _valueChanged(ev: CustomEvent) {

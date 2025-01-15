@@ -94,7 +94,7 @@ export interface LovelaceViewElement extends HTMLElement {
   lovelace?: Lovelace;
   narrow?: boolean;
   index?: number;
-  cards?: Array<LovelaceCard>;
+  cards?: LovelaceCard[];
   isStrategy: boolean;
   setConfig(config: LovelaceViewConfig): void;
 }

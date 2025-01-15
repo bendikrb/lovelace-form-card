@@ -4,6 +4,7 @@ import { customElement, property } from "lit/decorators.js";
 import { fireEvent, HomeAssistant } from "../ha";
 import type { FormCardFields } from "../cards/form-card-config";
 import { loadHaComponents } from "../utils/loader";
+import "./form-card-editor-field-row";
 import type { FormCardEditorFieldRow } from "./form-card-editor-field-row";
 import { mdiPlus } from "../ha/resources/mdi";
 import setupCustomlocalize from "../localize";
@@ -46,7 +47,6 @@ export class FormCardEditorFields extends LitElement {
   }
 
   public focusLastField() {
-    // noinspection CssInvalidHtmlTagReference
     const row = this.shadowRoot!.querySelector<FormCardEditorFieldRow>(
       "form-card-editor-field-row:last-of-type"
     )!;
@@ -80,22 +80,22 @@ export class FormCardEditorFields extends LitElement {
               </form-card-editor-field-row>
             `
           )}
+          <ha-button
+            outlined
+            @click=${this._addField}
+            .disabled=${this.disabled}
+            .label=${localize("editor.form.field.add_field")}
+          >
+            <ha-svg-icon .path=${mdiPlus} slot="icon"></ha-svg-icon>
+          </ha-button>
         </div>
-        <ha-button
-          outlined
-          @click=${this._addField}
-          .disabled=${this.disabled}
-          .label=${localize("editor.form.field.add_field")}
-        >
-          <ha-svg-icon .path=${mdiPlus} slot="icon"></ha-svg-icon>
-        </ha-button>
       </div>
     `;
   }
 
   private _fieldChanged(ev: CustomEvent) {
     ev.stopPropagation();
-    console.log("[form-card-editor-fields] _fieldChanged()");
+
     const key = (ev.target as any).key;
     let fields: FormCardFields = {};
     if (ev.detail.value === null) {
@@ -135,7 +135,6 @@ export class FormCardEditorFields extends LitElement {
   }
 
   static get styles(): CSSResultGroup {
-    // noinspection CssInvalidHtmlTagReference
     return css`
       form-card-editor-field-row {
         display: block;

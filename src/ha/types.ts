@@ -17,13 +17,13 @@ import type { Themes } from "./data/ws-themes";
 
 declare global {
   /* eslint-disable no-var, no-redeclare */
-  var __DEV__: boolean;
-  var __DEMO__: boolean;
-  var __BUILD__: "latest" | "es5";
-  var __VERSION__: string;
-  var __STATIC_PATH__: string;
-  var __BACKWARDS_COMPAT__: boolean;
-  var __SUPERVISOR__: boolean;
+  let __DEV__: boolean;
+  let __DEMO__: boolean;
+  let __BUILD__: "latest" | "es5";
+  let __VERSION__: string;
+  let __STATIC_PATH__: string;
+  let __BACKWARDS_COMPAT__: boolean;
+  let __SUPERVISOR__: boolean;
   /* eslint-enable no-var, no-redeclare */
 
   interface Window {
@@ -68,8 +68,8 @@ export interface EntityRegistryDisplayEntry {
 export interface DeviceRegistryEntry {
   id: string;
   config_entries: string[];
-  connections: Array<[string, string]>;
-  identifiers: Array<[string, string]>;
+  connections: [string, string][];
+  identifiers: [string, string][];
   manufacturer: string | null;
   model: string | null;
   name: string | null;

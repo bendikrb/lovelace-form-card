@@ -17,6 +17,7 @@ import {
   mdiDelete,
   mdiDotsVertical,
   mdiPlaylistEdit,
+  mdiPlus,
 } from "../ha/resources/mdi";
 
 const preventDefault = (ev: any) => ev.preventDefault();
@@ -186,7 +187,7 @@ export class FormCardEditorFieldRow extends LitElement {
   private _onYamlChange(ev: CustomEvent) {
     ev.stopPropagation();
     const value = { ...ev.detail.value };
-    console.log("_onYamlChange", value);
+
     if (typeof value !== "object" || Object.keys(value).length !== 1) {
       this._yamlError = "yaml_error";
       return;
@@ -203,7 +204,7 @@ export class FormCardEditorFieldRow extends LitElement {
     fireEvent(this, "value-changed", { value: newValue });
   }
 
-  private _maybeSetKey(value: any): void {
+  private _maybeSetKey(value): void {
     const nameChanged = value.name !== this.field.name;
     const keyChanged = value.key !== this.key;
     if (!nameChanged || keyChanged) {

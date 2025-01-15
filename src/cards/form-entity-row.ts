@@ -52,10 +52,6 @@ export class FormEntityRow extends LitElement {
       ] as const
   );
 
-  // static getConfigElement() {
-  //   return document.createElement("form-entity-row-editor");
-  // }
-
   @state() private _templateResults: Partial<
     Record<string, RenderTemplateResult | undefined>
   > = {};
@@ -64,13 +60,6 @@ export class FormEntityRow extends LitElement {
     string,
     Promise<UnsubscribeFunc>
   > = new Map();
-
-  // public static async getConfigElement(): Promise<LovelaceCardEditor> {
-  //   await import("./form-entity-row-editor");
-  //   return document.createElement(
-  //     FORM_ENTITY_ROW_EDITOR_NAME
-  //   ) as LovelaceCardEditor;
-  // }
 
   public static async getStubConfig(
     _hass: HomeAssistant
@@ -272,17 +261,15 @@ export class FormEntityRow extends LitElement {
       this._config.icon !== undefined
         ? this._config.icon || "no:icon"
         : undefined;
-    // const image = this.config.image;
     const color = this.getValue("color");
 
     const name =
       this.getValue("name") ??
       entity?.attributes?.friendly_name ??
       entity?.entity_id;
-    // const secondary = this.getValue("secondary");
+
     const state_value = this.getValue("state") ?? base?.state;
     const value = this.getValue("value") ?? state_value;
-    // let stateColor = true;
 
     const schema = this._schema(this._config.selector, name);
     const data = {
@@ -311,7 +298,7 @@ export class FormEntityRow extends LitElement {
             @value-changed=${this._valueChanged}
           ></ha-form>
         </div>
-        ${show_state ? html` <div class="state">${state}</div>` : nothing}
+        ${show_state ? html` <div class="state">${state_value}</div>` : nothing}
       </div>
       <div id="staging">
         <hui-generic-entity-row .hass=${this.hass} .config=${this._config}>
@@ -320,7 +307,7 @@ export class FormEntityRow extends LitElement {
     `;
   }
 
-  _computeLabelCallback(s: any) {
+  _computeLabelCallback(s) {
     return s.label ?? s.name;
   }
 
@@ -369,18 +356,11 @@ export class FormEntityRow extends LitElement {
     if (this._config?.change_action) {
       void this._performAction(this._config.change_action, value);
     }
-    // If we render the default with an incompatible selector, it risks throwing an exception and not rendering.
-    // Clear the default when changing the selector type.
-    // if (
-    //   Object.keys(this.config.selector)[0] !== Object.keys(value)[0]
-    // ) {
-    //   delete value.default;
-    // }
+
     fireEvent(this, "value-changed", { value });
   }
 
   static get styles(): CSSResultGroup {
-    // noinspection CssInvalidHtmlTagReference
     return [
       (customElements.get("hui-generic-entity-row") as any)?.styles,
       css`

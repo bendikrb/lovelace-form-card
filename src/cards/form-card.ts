@@ -14,11 +14,15 @@ import { customElement, property, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
 import {
   ActionConfig,
+  ActionHandlerEvent,
   HomeAssistant,
+  LovelaceCard,
   LovelaceCardEditor,
   RenderTemplateResult,
   subscribeRenderTemplate,
 } from "../ha";
+// import "../ha/components/ha-card";
+// import "../ha/components/ha-button";
 
 import { FORM_CARD_EDITOR_NAME, FORM_CARD_NAME } from "../const";
 import { FormCardConfig, FormCardField } from "./form-card-config";
@@ -313,6 +317,16 @@ export class FormCard extends LitElement {
     return JSON.stringify(this._value) !== JSON.stringify(this._initialValue);
   }
 
+  private async _renderTemplateWithResult(template: string): Promise<string> {
+    const variables = {
+      config: this._config,
+      user: this.hass.user!.name,
+      entity: this._config?.entity,
+    };
+    const val = await this._renderTemplate(template, variables);
+    return val.result;
+  }
+
   private async _renderTemplate(
     template: string,
     variables: Record<string, any>
@@ -358,6 +372,10 @@ export class FormCard extends LitElement {
         throw err;
       }
     }
+  }
+
+  private _handleAction(_ev: ActionHandlerEvent) {
+    // handleAction(this, this.hass!, this._config!, ev.detail.action!);
   }
 
   private _getProcessedFieldValue(key: string, field: any): any {
@@ -491,7 +509,11 @@ export class FormCard extends LitElement {
     }
 
     return html`
-      <ha-settings-row .narrow=${this.narrow} .slim=${layout === "horizontal"}>
+      <ha-settings-row
+        .narrow=${this.narrow}
+        .slim=${layout === "horizontal"}
+        class=${`layout-${layout}`}
+      >
         ${layout === "horizontal"
           ? [
               dataField.name
@@ -634,12 +656,10 @@ export class FormCard extends LitElement {
   }
 
   static get styles(): CSSResultGroup {
-    // noinspection CssInvalidHtmlTagReference
     return [
       cardStyle,
       css`
-        ha-settings-row {
-          padding: var(--service-control-padding, 0 16px);
+        ha-settings-row.layout-horizontal {
         }
         ha-settings-row {
           --paper-time-input-justify-content: flex-end;
@@ -697,6 +717,7 @@ export class FormCard extends LitElement {
           display: block;
           margin-top: 16px;
         }
+          
       `,
     ];
   }
