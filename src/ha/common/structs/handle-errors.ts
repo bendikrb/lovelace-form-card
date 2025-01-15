@@ -28,7 +28,6 @@ export const handleStructError = (
         )
       );
     } else if (failure.type === "union") {
-
     } else if (failure.type === "enums") {
       warnings.push(
         hass.localize(

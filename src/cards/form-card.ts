@@ -717,7 +717,6 @@ export class FormCard extends LitElement {
           display: block;
           margin-top: 16px;
         }
-          
       `,
     ];
   }

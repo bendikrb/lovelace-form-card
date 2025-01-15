@@ -38,13 +38,13 @@ export const cardStyle = css`
   .not-found {
     --main-color: rgb(var(--rgb-danger));
   }
-    ha-combo-box ha-textfield {
-        margin: 0;
-    }
-    ha-textfield[type="color"] {
-        margin: 0;
-    }
+  ha-combo-box ha-textfield {
+    margin: 0;
+  }
+  ha-textfield[type="color"] {
+    margin: 0;
+  }
   ha-textfield[type="color"] #label {
-      top: 18px;
+    top: 18px;
   }
 `;
