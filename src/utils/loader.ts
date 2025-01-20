@@ -19,9 +19,9 @@ export const loadHaComponents = async () => {
 };
 
 export const loadCustomElement = async <T = any>(name: string) => {
-  const Component = customElements.get(name) as T;
-  if (Component) {
-    return Component;
+  const component = customElements.get(name) as T;
+  if (component) {
+    return component;
   }
   await customElements.whenDefined(name);
   return customElements.get(name) as T;

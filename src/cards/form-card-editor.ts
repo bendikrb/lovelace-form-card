@@ -1,85 +1,81 @@
-import {
-  CSSResultGroup,
-  html,
-  css,
-  LitElement,
-  nothing,
-  PropertyValues,
-} from "lit";
+import type { CSSResultGroup, PropertyValues } from "lit";
+import { html, css, LitElement, nothing } from "lit";
 import { customElement, property, state, query } from "lit/decorators.js";
 import { assert } from "superstruct";
-import {
-  HomeAssistant,
-  LovelaceConfig,
-  LovelaceCardEditor,
-  fireEvent,
-  LocalizeFunc,
-} from "../ha";
+import type { HomeAssistant } from "home-assistant-types";
+import type { LovelaceConfig } from "home-assistant-types/dist/data/lovelace/config/types";
+import type { LovelaceCardEditor } from "home-assistant-types/dist/panels/lovelace/types";
+import type { LocalizeFunc } from "home-assistant-types/dist/common/translations/localize";
+import type { HaFormSchema } from "home-assistant-types/dist/components/ha-form/types";
+import type { UiAction } from "home-assistant-types/dist/panels/lovelace/components/hui-action-editor";
+
+import memoizeOne from "memoize-one";
+import { fireEvent } from "../utils/fire_event";
 import { FORM_CARD_EDITOR_NAME } from "../const";
-import {
-  FormCardConfig,
-  formCardConfigStruct,
-  FormCardFields,
-} from "./form-card-config";
+import type { FormCardConfig, FormCardFields } from "./form-card-config";
+import { formCardConfigStruct } from "./form-card-config";
 import setupCustomlocalize from "../localize";
 
-import "../components/form-card-editor-fields";
-import { FormCardEditorFields } from "../components/form-card-editor-fields";
-import { type HaFormSchema } from "../utils/form/ha-form";
+import type { FormCardEditorFields } from "../components/form-card-editor-fields";
 import { loadConfigDashboard, loadHaComponents } from "../utils/loader";
-import { computeActionsFormSchema } from "../shared/config/actions-config";
+import { computeActionsFormSchema } from "../shared/config";
 import { GENERIC_LABELS } from "../utils/form/generic-fields";
-import { type UiAction } from "../utils/form/ha-selector";
-import memoizeOne from "memoize-one";
+
+import "../components/form-card-editor-fields";
 
 const actions: UiAction[] = ["perform-action", "none"];
 const layoutOptions = ["horizontal", "vertical", "default"];
-const computeSchema = memoizeOne(
-  (t: LocalizeFunc, useCallService: boolean): HaFormSchema[] => [
-    {
-      name: "title",
-      selector: {
-        text: {},
+const computeSchema = memoizeOne((t: LocalizeFunc): HaFormSchema[] => [
+  {
+    name: "title",
+    selector: {
+      text: {},
+    },
+  },
+  {
+    name: "layout",
+    selector: {
+      select: {
+        options: layoutOptions.map((v) => ({
+          value: v,
+          label: t(`editor.form.layout_picker.values.${v}`),
+        })),
       },
     },
-    {
-      name: "layout",
-      selector: {
-        select: {
-          options: layoutOptions.map((v) => ({
-            value: v,
-            label: t(`editor.form.layout_picker.values.${v}`),
-          })),
-        },
+  },
+  {
+    type: "expandable",
+    title: t("editor.form.actions_heading.title"),
+    description: {
+      suffix: t("editor.form.actions_heading.description"),
+    },
+    name: "",
+    schema: [
+      {
+        name: "save_label",
+        selector: { text: {} },
       },
-    },
-    {
-      type: "expandable",
-      title: "Actions",
-      name: "",
-      schema: [
-        {
-          name: "save_label",
-          selector: { text: {} },
-        },
-        {
-          name: "spread_values_to_data",
-          selector: { boolean: {} },
-        },
-        ...computeActionsFormSchema("save_action", actions, useCallService),
-      ],
-    },
-  ]
-);
+      {
+        name: "spread_values_to_data",
+        selector: { boolean: {} },
+      },
+      ...computeActionsFormSchema("save_action", actions),
+    ],
+  },
+]);
 
 @customElement(FORM_CARD_EDITOR_NAME)
 export class FormCardEditor extends LitElement implements LovelaceCardEditor {
   @property({ attribute: false }) public hass!: HomeAssistant;
+
   @property({ attribute: false }) public lovelace?: LovelaceConfig;
+
   @property({ type: Boolean }) public narrow = false;
+
   @property({ type: Boolean }) public disabled = false;
 
   @state() private _config?: FormCardConfig;
+
   @state() private _dirty = false;
 
   @property({ attribute: false }) public config!: FormCardConfig;
@@ -95,7 +91,6 @@ export class FormCardEditor extends LitElement implements LovelaceCardEditor {
       this._formFields?.updateComplete.then(() => {
         this._formFields?.focusLastField();
       });
-      console.log("[form-card-editor] updated()");
     }
   }
 
@@ -132,7 +127,7 @@ export class FormCardEditor extends LitElement implements LovelaceCardEditor {
       return nothing;
     }
     const localize = setupCustomlocalize(this.hass!);
-    const schema = computeSchema(localize, false);
+    const schema = computeSchema(localize);
 
     return html`
       <div class="header">
@@ -142,11 +137,11 @@ export class FormCardEditor extends LitElement implements LovelaceCardEditor {
       </div>
       <form-card-editor-fields
         role="region"
-        .hass=${this.hass}
         aria-labelledby="fields-heading"
         .fields=${this._config?.fields}
         .schema=${schema}
         .disable=${this.disabled}
+        .hass=${this.hass}
         @value-changed=${this._fieldsChanged}
       ></form-card-editor-fields>
       ${!("fields" in this._config)
@@ -192,19 +187,18 @@ export class FormCardEditor extends LitElement implements LovelaceCardEditor {
       ...this._config!,
       fields: ev.detail.value as FormCardFields,
     };
-    console.log("[form-card-editor] _fieldsChanged()");
+    console.log("Fields changed!", value);
     fireEvent(this, "config-changed", { config: value });
   }
 
   private _valueChanged(ev: CustomEvent) {
-    console.log("[form-card-editor] _valueChanged()");
     fireEvent(this, "config-changed", { config: ev.detail.value });
   }
 
   static get styles(): CSSResultGroup {
     return [
       css`
-        :host {
+        :host {|
           display: block;
         }
 

@@ -1,15 +1,11 @@
-import { ActionConfig, LovelaceCardConfig } from "../ha";
-import type { HaFormSelector } from "../utils/form/ha-form";
+import type { ActionConfig } from "home-assistant-types/dist/data/lovelace/config/action";
+import type { Selector } from "home-assistant-types/dist/data/selector";
+import type { EntityConfig } from "home-assistant-types/dist/panels/lovelace/entity-rows/types";
 
-export type FormEntityRowConfig = LovelaceCardConfig & {
-  type: string;
-  name?: string;
-  icon?: string;
-  show_state?: boolean;
+export interface FormEntityRowConfig extends EntityConfig {
+  type: "custom:form-entity-row";
   value?: string;
-  entity?: string;
-  selector?: HaFormSelector;
-  secondary?: string;
-  state?: string;
+  selector?: Selector;
   change_action?: ActionConfig;
-};
+  spread_values_to_data?: boolean;
+}

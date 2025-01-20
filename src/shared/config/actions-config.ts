@@ -1,7 +1,10 @@
 import { object, optional } from "superstruct";
-import { ActionConfig, actionConfigStruct } from "../../ha";
-import { HaFormSchema } from "../../utils/form/ha-form";
-import { UiAction } from "../../utils/form/ha-selector";
+
+import type { ActionConfig } from "home-assistant-types/dist/data/lovelace/config/action";
+import type { HaFormSchema } from "home-assistant-types/dist/components/ha-form/types";
+import type { UiAction } from "home-assistant-types/dist/panels/lovelace/components/hui-action-editor";
+
+import { actionConfigStruct } from "./action-struct";
 
 export const actionsSharedConfigStruct = object({
   change_action: optional(actionConfigStruct),
@@ -10,30 +13,19 @@ export const actionsSharedConfigStruct = object({
   double_tap_action: optional(actionConfigStruct),
 });
 
-export type ActionsSharedConfig = {
+export interface ActionsSharedConfig {
   change_action?: ActionConfig;
   tap_action?: ActionConfig;
   hold_action?: ActionConfig;
   double_tap_action?: ActionConfig;
-};
+}
 
 export const computeActionsFormSchema = (
   name: string,
-  actions?: UiAction[],
-  useCallService?: boolean
-): HaFormSchema[] => {
-  if (useCallService && actions) {
-    actions = actions.map((action) => {
-      if (action === "perform-action") {
-        return "call-service";
-      }
-      return action;
-    });
-  }
-  return [
-    {
-      name,
-      selector: { ui_action: { actions } },
-    },
-  ];
-};
+  actions?: UiAction[]
+): HaFormSchema[] => [
+  {
+    name,
+    selector: { ui_action: { actions } },
+  },
+];

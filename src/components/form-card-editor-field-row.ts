@@ -1,24 +1,22 @@
+/* eslint-disable unused-imports/no-unused-imports */
 import type { CSSResultGroup } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
 import memoizeOne from "memoize-one";
-import { fireEvent } from "../ha";
+
+import type { HomeAssistant } from "home-assistant-types";
+import type { SchemaUnion } from "home-assistant-types/dist/components/ha-form/types";
+import type { HaExpansionPanel as _HaExpansionPanel } from "home-assistant-types/dist/components/ha-expansion-panel";
+import { mdiDelete, mdiDotsVertical, mdiPlaylistEdit } from "@mdi/js";
+import { haStyle } from "../shared/styles";
+
+import { fireEvent } from "../utils/fire_event";
 import { slugify } from "../utils/tools";
-import type { SchemaUnion } from "../utils/form/ha-form";
 import type { FormCardField } from "../cards/form-card-config";
 import { cardStyle } from "../utils/card-styles";
-import type { HomeAssistant } from "../ha";
 import setupCustomlocalize from "../localize";
 import { GENERIC_LABELS } from "../utils/form/generic-fields";
-import { haStyle } from "../ha/resources/styles";
-
-import {
-  mdiDelete,
-  mdiDotsVertical,
-  mdiPlaylistEdit,
-  mdiPlus,
-} from "../ha/resources/mdi";
 
 const preventDefault = (ev: any) => ev.preventDefault();
 const stopPropagation = (ev: any) => ev.stopPropagation();
@@ -40,7 +38,7 @@ export class FormCardEditorFieldRow extends LitElement {
 
   @state() private _yamlError?: undefined | "yaml_error" | "key_not_unique";
 
-  @state() private _yamlMode: boolean = false;
+  @state() private _yamlMode = false;
 
   private _errorKey?: string;
 
@@ -236,7 +234,6 @@ export class FormCardEditorFieldRow extends LitElement {
   private _valueChanged(ev: CustomEvent) {
     ev.stopPropagation();
     const value = { ...ev.detail.value };
-    console.log("_valueChanged", value);
     this._maybeSetKey(value);
 
     // Don't allow to set an empty key, or duplicate an existing key.
@@ -280,13 +277,9 @@ export class FormCardEditorFieldRow extends LitElement {
     }
   };
 
-  private _computeError = (error: string) => {
-    return (
-      this.hass.localize(
-        `ui.panel.config.script.editor.field.${error}` as any
-      ) || error
-    );
-  };
+  private _computeError = (error: string) =>
+    this.hass.localize(`ui.panel.config.script.editor.field.${error}` as any) ||
+    error;
 
   static get styles(): CSSResultGroup {
     return [

@@ -1,18 +1,25 @@
 import { assign, boolean, object, optional, string } from "superstruct";
-import { appearanceSharedConfigStruct } from "../shared/config/appearance-config";
-import { entitySharedConfigStruct } from "../shared/config/entity-config";
-import { lovelaceCardConfigStruct } from "../shared/config/lovelace-card-config";
-import { ActionConfig, LovelaceCardConfig, actionConfigStruct } from "../ha";
-import { Layout, layoutStruct } from "../utils/layout";
+import type { ActionConfig } from "home-assistant-types/dist/data/lovelace/config/action";
+import type { LovelaceCardConfig } from "home-assistant-types/dist/data/lovelace/config/card";
 
-export type FormCardConfig = LovelaceCardConfig & {
+import {
+  appearanceSharedConfigStruct,
+  lovelaceCardConfigStruct,
+  entitySharedConfigStruct,
+} from "../shared/config";
+import { actionConfigStruct } from "../shared/config/struct";
+import type { Layout } from "../utils/layout";
+import { layoutStruct } from "../utils/layout";
+
+export interface FormCardConfig extends LovelaceCardConfig {
+  type: "custom:form-card";
   title?: string;
   layout: Layout;
   fields: FormCardFields;
   save_label?: string;
   save_action?: ActionConfig;
   spread_values_to_data?: boolean;
-};
+}
 
 export const formCardConfigStruct = assign(
   lovelaceCardConfigStruct,
@@ -27,9 +34,7 @@ export const formCardConfigStruct = assign(
   })
 );
 
-export interface FormCardFields {
-  [key: string]: FormCardField;
-}
+export type FormCardFields = Record<string, FormCardField>;
 
 export interface FormCardField {
   name?: string;

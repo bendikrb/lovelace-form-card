@@ -18,7 +18,10 @@
   "author": "Bendik R. Brenne <bendik@konstant.no>",
   "license": "MIT",
   "dependencies": {
+    "@mdi/js": "^7.4.47",
+    "globals": "^15.14.0",
     "home-assistant-js-websocket": "^9.4.0",
+    "home-assistant-types": "^2025.1.11",
     "lit": "2.8.0",
     "lit-html": "2.8.0",
     "memoize-one": "6.0.0",
@@ -35,6 +38,17 @@
     "@rollup/plugin-node-resolve": "^15.3.0",
     "@rollup/plugin-terser": "^0.4.4",
     "@rollup/plugin-typescript": "^12.1.1",
+    "@typescript-eslint/eslint-plugin": "8.20.0",
+    "@typescript-eslint/parser": "8.20.0",
+    "eslint": "9.18.0",
+    "eslint-config-airbnb-base": "15.0.0",
+    "eslint-config-prettier": "9.1.0",
+    "eslint-import-resolver-webpack": "0.13.10",
+    "eslint-plugin-import": "2.31.0",
+    "eslint-plugin-lit": "1.15.0",
+    "eslint-plugin-lit-a11y": "4.1.4",
+    "eslint-plugin-unused-imports": "4.1.4",
+    "eslint-plugin-wc": "2.2.0",
     "prettier": "^3.3.3",
     "rollup": "^4.18.0",
     "rollup-plugin-serve": "^1.1.1",
@@ -43,7 +57,16 @@
     "tslint": "^6.1.3",
     "typescript": "^5.6.3"
   },
+  "resolutions": {
+    "globals": "15.14.0"
+  },
   "scripts": {
+    "lint": "yarn run lint:eslint && yarn run lint:prettier",
+    "format": "yarn run format:eslint && yarn run format:prettier",
+    "lint:eslint": "eslint --flag unstable_config_lookup_from_file \"src/**/*.ts\" --cache --cache-strategy=content --cache-location=node_modules/.cache/eslint/.eslintcache --ignore-pattern=.gitignore --max-warnings=0",
+    "format:eslint": "eslint --flag unstable_config_lookup_from_file \"src/**/*.ts\" --cache --cache-strategy=content --cache-location=node_modules/.cache/eslint/.eslintcache --ignore-pattern=.gitignore --fix",
+    "lint:prettier": "prettier src --cache --check",
+    "format:prettier": "prettier src --cache --write",
     "bunbuild": "bun build ./src/form-card.ts --sourcemap=external --minify --outdir=dist",
     "build": "rollup -c --bundleConfigAsCjs",
     "watch": "rollup -c --watch"

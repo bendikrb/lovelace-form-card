@@ -46,8 +46,6 @@ export const slugify = (value: string, delimiter = "_") => {
   return slugified;
 };
 
-const TIMEOUT_ERROR = "SELECTTREE-TIMEOUT";
-
 export async function await_element(el, hard = false) {
   if (el.localName?.includes("-"))
     await customElements.whenDefined(el.localName);
@@ -62,39 +60,39 @@ export async function await_element(el, hard = false) {
   }
 }
 
-async function _selectTree(root, path, all = false) {
-  let el = [root];
-  if (typeof path === "string") {
-    path = path.split(/(\$| )/);
-  }
-  while (path[path.length - 1] === "") path.pop();
-  for (const [_i, p] of path.entries()) {
-    const e = el[0];
-    if (!e) return null;
-
-    if (!p.trim().length) continue;
-
-    await await_element(e);
-    el = p === "$" ? [e.shadowRoot] : e.querySelectorAll(p);
-  }
-  return all ? el : el[0];
-}
-
-export async function selectTree(root, path, all = false, timeout = 10000) {
-  return Promise.race([
-    _selectTree(root, path, all),
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error(TIMEOUT_ERROR)), timeout)
-    ),
-  ]).catch((err) => {
-    if (!err.message || err.message !== TIMEOUT_ERROR) throw err;
-    return null;
-  });
-}
-
 export async function waitRepeat(fn, times, delay) {
   while (times--) {
     await fn();
     await new Promise((r) => setTimeout(r, delay));
   }
+}
+
+export function reorderRecord<T>(
+  record: Record<string, T>,
+  oldIndex: number,
+  newIndex: number
+): Record<string, T> {
+  const newRecord = structuredClone(record);
+  const keys = Object.keys(newRecord);
+  if (
+    oldIndex < 0 ||
+    oldIndex >= keys.length ||
+    newIndex < 0 ||
+    newIndex >= keys.length
+  ) {
+    throw new Error("Index out of bounds");
+  }
+
+  // Remove the key at oldIndex
+  const [movedKey] = keys.splice(oldIndex, 1);
+  // Insert the key at newIndex
+  keys.splice(newIndex, 0, movedKey);
+
+  // Create a new record with reordered keys
+  const reorderedRecord: Record<string, T> = {};
+  for (const key of keys) {
+    reorderedRecord[key] = newRecord[key];
+  }
+
+  return reorderedRecord;
 }

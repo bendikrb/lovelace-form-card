@@ -1,5 +1,7 @@
-import { boolean, Infer, object, optional } from "superstruct";
-import { Layout, layoutStruct } from "../../utils/layout";
+import type { Infer } from "superstruct";
+import { boolean, object, optional } from "superstruct";
+import type { Layout } from "../../utils/layout";
+import { layoutStruct } from "../../utils/layout";
 
 export const appearanceSharedConfigStruct = object({
   layout: optional(layoutStruct),
@@ -8,7 +10,7 @@ export const appearanceSharedConfigStruct = object({
 
 export type AppearanceSharedConfig = Infer<typeof appearanceSharedConfigStruct>;
 
-export type Appearance = {
+export interface Appearance {
   layout: Layout;
   fill_container: boolean;
-};
+}

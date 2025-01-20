@@ -1,19 +1,15 @@
 {
-    "defaultSeverity": "error",
-    "extends": [
-        "tslint:recommended"
-    ],
-    "jsRules": {
-    },
-    "rules": {
-        "no-console": false,
-        "variable-name": false,
-        "max-classes-per-file": false,
-        "no-empty": false,
-        "no-empty-interface": false,
-        "no-bitwise": false
-    },
-    "rulesDirectory": [],
-    "linterOptions": {
-    }
+  "defaultSeverity": "error",
+  "extends": ["tslint:recommended"],
+  "jsRules": {},
+  "rules": {
+    "no-console": false,
+    "variable-name": false,
+    "max-classes-per-file": false,
+    "no-empty": false,
+    "no-empty-interface": false,
+    "no-bitwise": false
+  },
+  "rulesDirectory": [],
+  "linterOptions": {}
 }

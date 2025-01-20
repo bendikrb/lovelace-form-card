@@ -10,13 +10,13 @@ import {
   type,
   union,
 } from "superstruct";
-import { BaseActionConfig } from "../../../../data/lovelace";
+import type { BaseActionConfig } from "home-assistant-types/dist/data/lovelace/config/action";
 
 const actionConfigStructUser = object({
   user: string(),
 });
 
-const actionConfigStructConfirmation = union([
+export const actionConfigStructConfirmation = union([
   boolean(),
   object({
     text: optional(string()),
@@ -51,6 +51,7 @@ const actionConfigStructService = object({
 const actionConfigStructNavigate = object({
   action: literal("navigate"),
   navigation_path: string(),
+  navigation_replace: optional(boolean()),
   confirmation: optional(actionConfigStructConfirmation),
 });
 
@@ -60,8 +61,9 @@ const actionConfigStructAssist = type({
   start_listening: optional(boolean()),
 });
 
-const actionConfigStructCustom = type({
-  action: literal("fire-dom-event"),
+const actionConfigStructMoreInfo = type({
+  action: literal("more-info"),
+  entity: optional(string()),
 });
 
 export const actionConfigStructType = object({
@@ -87,9 +89,6 @@ export const actionConfigStruct = dynamic<any>((value) => {
       case "perform-action": {
         return actionConfigStructService;
       }
-      case "fire-dom-event": {
-        return actionConfigStructCustom;
-      }
       case "navigate": {
         return actionConfigStructNavigate;
       }
@@ -98,6 +97,9 @@ export const actionConfigStruct = dynamic<any>((value) => {
       }
       case "assist": {
         return actionConfigStructAssist;
+      }
+      case "more-info": {
+        return actionConfigStructMoreInfo;
       }
     }
   }

@@ -1,4 +1,5 @@
-import { Infer, object, optional, string } from "superstruct";
+import type { Infer } from "superstruct";
+import { object, optional, string } from "superstruct";
 
 export const entitySharedConfigStruct = object({
   entity: optional(string()),

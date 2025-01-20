@@ -9,6 +9,10 @@
         "title": "Fields",
         "description": ""
       },
+      "actions_heading": {
+        "title": "Actions",
+        "description": "actions description"
+      },
       "form_heading": {
         "title": "Card configuration",
         "description": "Configure the card."
@@ -82,8 +86,11 @@
         "save_label": "Save button label",
         "spread_values_to_data": "Spread form values to action data",
         "save_action": "Save action",
+        "change_action": "Change action",
         "edit_ui": "Edit in visual editor",
-        "edit_yaml": "Edit in YAML"
+        "edit_yaml": "Edit in YAML",
+        "show_state": "Show state",
+        "show_icon": "Show icon"
       },
 
       "light": {

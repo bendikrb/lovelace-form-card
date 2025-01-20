@@ -1,45 +1,40 @@
-import {
-  LitElement,
-  CSSResultGroup,
-  html,
-  css,
-  nothing,
-  PropertyValues,
-} from "lit";
+import type { CSSResultGroup, PropertyValues } from "lit";
+import { html, css, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
 
 import memoizeOne from "memoize-one";
-import { UnsubscribeFunc } from "home-assistant-js-websocket";
 
-import {
-  ActionConfig,
-  fireEvent,
-  HomeAssistant,
-  subscribeRenderTemplate,
-  RenderTemplateResult,
-} from "../ha";
+import type { HomeAssistant } from "home-assistant-types";
+import type { ActionConfig } from "home-assistant-types/dist/data/lovelace/config/action";
+import type { RenderTemplateResult } from "home-assistant-types/dist/data/ws-templates";
 
-import { FORM_ENTITY_ROW_NAME } from "../const";
+import type { LovelaceRowEditor } from "home-assistant-types/dist/panels/lovelace/types";
+import { FormBaseCard } from "../shared/form-base-card";
+import { fireEvent } from "../utils/fire_event";
+import { subscribeRenderTemplate } from "../utils/ws-templates";
 
-import { FormEntityRowConfig } from "./form-entity-row-config";
+import { FORM_ENTITY_ROW_EDITOR_NAME, FORM_ENTITY_ROW_NAME } from "../const";
+
+import type { FormEntityRowConfig } from "./form-entity-row-config";
 
 import { applyToStrings } from "../utils/tools";
 
-const OPTIONS = [
-  "icon",
-  "name",
-  "show_state",
-  "secondary",
-  "value",
-  "entity",
-] as const;
+const OPTIONS = ["icon", "name", "value", "entity"] as const;
 
 @customElement(FORM_ENTITY_ROW_NAME)
-export class FormEntityRow extends LitElement {
+export class FormEntityRow extends FormBaseCard {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @state() private _config?: FormEntityRowConfig;
+  @state() protected _config?: FormEntityRowConfig;
+
+  public static async getConfigElement(): Promise<LovelaceRowEditor> {
+    await import("./form-entity-row-editor");
+    // await setupFormCardEditorFields();
+    return document.createElement(
+      FORM_ENTITY_ROW_EDITOR_NAME
+    ) as LovelaceRowEditor;
+  }
 
   private _schema = memoizeOne(
     (selector: any, name: string) =>
@@ -56,19 +51,23 @@ export class FormEntityRow extends LitElement {
     Record<string, RenderTemplateResult | undefined>
   > = {};
 
-  @state() private _unsubRenderTemplates: Map<
-    string,
-    Promise<UnsubscribeFunc>
-  > = new Map();
-
   public static async getStubConfig(
-    _hass: HomeAssistant
+    hass: HomeAssistant
   ): Promise<FormEntityRowConfig> {
+    const entities = Object.keys(hass.states);
+    const entity_id = entities[0];
     return {
       type: "custom:form-entity-row",
-      name: "Hello, {{user}}",
-      secondary: "How are you?",
-      icon: "mdi:home",
+      name: '{{ state_attr(config.entity, "friendly_name") }}',
+      value: "{{ states(config.entity) }}",
+      icon: hass.states[entity_id].attributes.icon ?? "",
+      entity: entity_id,
+      selector: {
+        text: {},
+      },
+      change_action: {
+        action: "none",
+      },
     };
   }
 
@@ -91,6 +90,7 @@ export class FormEntityRow extends LitElement {
   }
 
   public disconnectedCallback() {
+    super.disconnectedCallback();
     void this._tryDisconnect();
   }
 
@@ -99,7 +99,7 @@ export class FormEntityRow extends LitElement {
     return value?.includes("{");
   }
 
-  private getValue(key: string) {
+  protected _getValue(key: string) {
     return this.isTemplate(key)
       ? this._templateResults[key]?.result
       : this._config?.[key];
@@ -136,33 +136,6 @@ export class FormEntityRow extends LitElement {
     };
     const val = await this._renderTemplate(template, variables);
     return val.result;
-  }
-
-  private async _renderTemplate(
-    template: string,
-    variables: Record<string, any>
-  ): Promise<RenderTemplateResult> {
-    return new Promise<RenderTemplateResult>((resolve, reject) => {
-      const unsubscribePromise = subscribeRenderTemplate(
-        this.hass.connection,
-        (result) => {
-          resolve(result as RenderTemplateResult);
-          unsubscribePromise.then((unsubscribe) => unsubscribe()).catch(reject);
-        },
-        {
-          template,
-          variables: {
-            config: this._config,
-            user: this.hass.user!.name,
-            entity: this._config?.entity,
-            ...variables,
-          },
-          strict: true,
-        }
-      );
-
-      unsubscribePromise.catch(reject);
-    });
   }
 
   private async _tryConnectKey(key: string): Promise<void> {
@@ -221,26 +194,7 @@ export class FormEntityRow extends LitElement {
     });
   }
 
-  private async _tryDisconnectKey(key: string): Promise<void> {
-    const unsubRenderTemplate = this._unsubRenderTemplates.get(key);
-    if (!unsubRenderTemplate) {
-      return;
-    }
-
-    try {
-      const unsub = await unsubRenderTemplate;
-      unsub();
-      this._unsubRenderTemplates.delete(key);
-    } catch (err: any) {
-      if (err.code === "not_found" || err.code === "template_error") {
-        // If we get here, the connection was probably already closed. Ignore.
-      } else {
-        throw err;
-      }
-    }
-  }
-
-  _actionHandler(_ev: CustomEvent) {
+  protected _actionHandler(_ev: CustomEvent) {
     // return this._action?.(ev);
     return null;
   }
@@ -249,7 +203,7 @@ export class FormEntityRow extends LitElement {
     if (!this._config || !this.hass) {
       return nothing;
     }
-    const entity_id = this.getValue("entity");
+    const entity_id = this._getValue("entity");
     const base = this.hass.states[entity_id];
     const entity = (base && JSON.parse(JSON.stringify(base))) || {
       entity_id: "binary_sensor.",
@@ -261,15 +215,15 @@ export class FormEntityRow extends LitElement {
       this._config.icon !== undefined
         ? this._config.icon || "no:icon"
         : undefined;
-    const color = this.getValue("color");
+    const color = this._getValue("color");
 
     const name =
-      this.getValue("name") ??
+      this._getValue("name") ??
       entity?.attributes?.friendly_name ??
       entity?.entity_id;
 
-    const state_value = this.getValue("state") ?? base?.state;
-    const value = this.getValue("value") ?? state_value;
+    const state_value = this._getValue("state") ?? base?.state;
+    const value = this._getValue("value") ?? state_value;
 
     const schema = this._schema(this._config.selector, name);
     const data = {
@@ -289,15 +243,13 @@ export class FormEntityRow extends LitElement {
           @action=${this._actionHandler}
           class=${classMap({ pointer: has_action })}
         ></state-badge>
-        <div class=${classMap({ info: true, pointer: has_action })}>
-          <ha-form
-            .hass=${this.hass}
-            .data=${data}
-            .schema=${schema}
-            .computeLabel=${this._computeLabelCallback}
-            @value-changed=${this._valueChanged}
-          ></ha-form>
-        </div>
+        <ha-form
+          .hass=${this.hass}
+          .data=${data}
+          .schema=${schema}
+          .computeLabel=${this._computeLabel}
+          @value-changed=${this._valueChanged}
+        ></ha-form>
         ${show_state ? html` <div class="state">${state_value}</div>` : nothing}
       </div>
       <div id="staging">
@@ -307,54 +259,31 @@ export class FormEntityRow extends LitElement {
     `;
   }
 
-  _computeLabelCallback(s) {
+  protected _computeLabel(s) {
     return s.label ?? s.name;
   }
 
-  private async _performAction(action: ActionConfig, value: any) {
+  public async performAction(
+    actionConfig: ActionConfig,
+    value: Record<string, any>
+  ) {
     if (
-      action.action === "call-service" ||
-      action.action === "perform-action"
+      actionConfig.action !== "call-service" &&
+      actionConfig.action !== "perform-action"
     ) {
-      const variables = {
-        value: value.value,
-      };
-      const actionData = { ...action.data, ...action.service_data };
-
-      const serviceData = {};
-      for (const k in actionData) {
-        if (typeof actionData[k] === "string") {
-          serviceData[k] = (
-            await this._renderTemplate(actionData[k], variables)
-          ).result;
-        } else {
-          serviceData[k] = actionData[k];
-        }
-      }
-
-      const [domain, service] = action.perform_action.split(".");
-      const payload = {
-        domain,
-        service,
-        service_data: serviceData,
-        target: {},
-      };
-      if (action.target) {
-        payload.target = action.target;
-      }
-
-      await this.hass.callWS({
-        type: "call_service",
-        ...payload,
-      });
+      return;
     }
+    await this._performAction(actionConfig, value);
   }
 
   private _valueChanged(ev: CustomEvent) {
     ev.stopPropagation();
     const value = { ...ev.detail.value };
     if (this._config?.change_action) {
-      void this._performAction(this._config.change_action, value);
+      const data = {
+        json_value: value,
+      };
+      void this.performAction(this._config.change_action, data);
     }
 
     fireEvent(this, "value-changed", { value });
@@ -371,6 +300,11 @@ export class FormEntityRow extends LitElement {
           display: flex;
           align-items: center;
           flex-direction: row;
+        }
+        #wrapper ha-form {
+          display: inline-flex;
+          flex-direction: column;
+          width: 100%;
         }
         .state {
           text-align: right;
