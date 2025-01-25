@@ -40,3 +40,8 @@ jobs:
           file: form-card.zip
           tag: ${{ github.ref }}
           overwrite: true
+
+      - name: HACS release validation
+        uses: hacs/action@21.12.1
+        with:
+          category: plugin
