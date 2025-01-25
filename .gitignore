@@ -13,4 +13,6 @@ dist
 !.hass_dev/packages
 .hass_dev/www/community/*
 bun.lockb
-.idea
+.idea/*
+!.idea/workspace.xml
+
