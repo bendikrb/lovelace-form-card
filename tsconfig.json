@@ -8,6 +8,7 @@
     "moduleResolution": "node",
     "noEmit": true,
     "noUnusedParameters": true,
+    "noUnusedLocals": false,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "strict": true,

@@ -1,6 +1,6 @@
 import { LitElement } from "lit";
 import { property, state } from "lit/decorators.js";
-import type { HomeAssistant } from "home-assistant-types";
+import type { HomeAssistant, ServiceCallRequest } from "home-assistant-types";
 import type {
   HassServiceTarget,
   UnsubscribeFunc,
@@ -8,12 +8,14 @@ import type {
 
 import type { RenderTemplateResult } from "home-assistant-types/dist/data/ws-templates";
 import type { CallServiceActionConfig } from "home-assistant-types/dist/data/lovelace/config/action";
-import { subscribeRenderTemplate } from "../utils/ws-templates";
+import { fireEvent, subscribeRenderTemplate } from "../utils";
 import type { FormCardConfig } from "../cards/form-card-config";
 import type { FormEntityRowConfig } from "../cards/form-entity-row-config";
 
 export class FormBaseCard extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
+
+  @property({ attribute: false }) public editMode? = false;
 
   @state() protected _config?: FormCardConfig | FormEntityRowConfig;
 
@@ -111,13 +113,27 @@ export class FormBaseCard extends LitElement {
       serviceTarget = { entity_id };
     }
 
-    console.log(
-      "Calling service: ",
-      domain,
-      service,
-      serviceData,
-      serviceTarget
-    );
-    await this.hass.callService(domain, service, serviceData, serviceTarget);
+    if (this.editMode) {
+      fireEvent(this, "form-card-submit-action", {
+        domain,
+        service,
+        data: serviceData,
+        target: serviceTarget,
+      });
+    } else {
+      await this.hass.callService(domain, service, serviceData, serviceTarget);
+    }
+  }
+}
+
+declare global {
+  // for fire event
+  interface HASSDomEvents {
+    "form-card-submit-action": {
+      domain: ServiceCallRequest["domain"];
+      service: ServiceCallRequest["service"];
+      data: ServiceCallRequest["serviceData"];
+      target: ServiceCallRequest["target"];
+    };
   }
 }

@@ -73,16 +73,11 @@
         "delete": "Delete"
       },
       "fields": {
-        "name": "Name",
-        "key": "Key",
-        "description": "Description",
-        "selector": "Selector",
         "entity": "Entity",
         "value": "Value",
         "title": "Title",
         "layout": "Layout",
-        "fields": "Fields",
-        "required": "Required",
+        "disabled": "Disabled",
         "save_label": "Save button label",
         "spread_values_to_data": "Spread form values to action data",
         "save_action": "Save action",

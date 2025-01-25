@@ -1,22 +1,23 @@
-/* eslint-disable unused-imports/no-unused-imports */
-import type { CSSResultGroup } from "lit";
+// noinspection ES6UnusedImports
+
+import type { CSSResultGroup, PropertyValues } from "lit";
 import { LitElement, css, html, nothing } from "lit";
-import { customElement, property, state } from "lit/decorators.js";
+import { customElement, property, query, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
 import memoizeOne from "memoize-one";
 
 import type { HomeAssistant } from "home-assistant-types";
 import type { SchemaUnion } from "home-assistant-types/dist/components/ha-form/types";
-import type { HaExpansionPanel as _HaExpansionPanel } from "home-assistant-types/dist/components/ha-expansion-panel";
-import { mdiDelete, mdiDotsVertical, mdiPlaylistEdit } from "@mdi/js";
+import { mdiDelete, mdiDotsVertical, mdiPlaylistEdit, mdiArrowUp, mdiArrowDown } from "@mdi/js";
+import type { HaExpansionPanel } from "home-assistant-types/dist/components/ha-expansion-panel";
+import type { HaYamlEditor } from "home-assistant-types/dist/components/ha-yaml-editor";
 import { haStyle } from "../shared/styles";
 
-import { fireEvent } from "../utils/fire_event";
-import { slugify } from "../utils/tools";
+import { hasTemplate, fireEvent , slugify , cardStyle } from "../utils";
 import type { FormCardField } from "../cards/form-card-config";
-import { cardStyle } from "../utils/card-styles";
 import setupCustomlocalize from "../localize";
 import { GENERIC_LABELS } from "../utils/form/generic-fields";
+import { handleStructError } from "../shared/config";
 
 const preventDefault = (ev: any) => ev.preventDefault();
 const stopPropagation = (ev: any) => ev.stopPropagation();
@@ -27,10 +28,15 @@ export class FormCardEditorFieldRow extends LitElement {
 
   @property() public key!: string;
 
-  @property({ attribute: false, type: Array }) public excludeKeys: string[] =
-    [];
+  @property({ attribute: false, type: Array }) public excludeKeys: string[] = [];
 
   @property({ attribute: false }) public field!: FormCardField;
+
+  @property({ type: Boolean }) public narrow = false;
+
+  @property({ type: Boolean }) public first?: boolean;
+
+  @property({ type: Boolean }) public last?: boolean;
 
   @property({ type: Boolean }) public disabled = false;
 
@@ -38,7 +44,13 @@ export class FormCardEditorFieldRow extends LitElement {
 
   @state() private _yamlError?: undefined | "yaml_error" | "key_not_unique";
 
+  @state() private _warnings?: string[];
+
+  @state() private _uiModeAvailable = true;
+
   @state() private _yamlMode = false;
+
+  @query("ha-yaml-editor") private _yamlEditor?: HaYamlEditor;
 
   private _errorKey?: string;
 
@@ -46,35 +58,81 @@ export class FormCardEditorFieldRow extends LitElement {
     () =>
       [
         {
-          name: "name",
-          selector: { text: {} },
-        },
-        {
-          name: "key",
-          selector: { text: {} },
-        },
-        {
-          name: "description",
-          selector: { text: {} },
+          type: "grid",
+          name: "",
+          schema: [
+            {
+              name: "key",
+              selector: { text: {} },
+            },
+            {
+              name: "name",
+              selector: { text: {} },
+            },
+          ],
         },
         {
           name: "selector",
           selector: { selector: {} },
         },
         {
+          type: "grid",
+          name: "",
+          schema: [
+            {
+              name: "description",
+              selector: { text: {} },
+            },
+            {
+              name: "value",
+              selector: { text: {} },
+            },
+          ]
+        },
+        {
           name: "entity",
           selector: { entity: {} },
         },
         {
-          name: "value",
-          selector: { text: {} },
-        },
-        {
-          name: "required",
-          selector: { boolean: {} },
+          type: "grid",
+          name: "",
+          schema: [
+            {
+              name: "disabled",
+              selector: { boolean: {} },
+            },
+            {
+              name: "required",
+              selector: { boolean: {} },
+            },
+          ]
         },
       ] as const
   );
+
+  protected willUpdate(changedProperties: PropertyValues) {
+    if (!changedProperties.has("field")) {
+      return;
+    }
+    const field = this.field;
+    this._uiModeAvailable = !hasTemplate(field);
+
+    if (!this._uiModeAvailable && !this._yamlMode) {
+      this._yamlMode = true;
+    }
+  }
+
+  protected updated(changedProperties: PropertyValues) {
+    if (!changedProperties.has("field")) {
+      return;
+    }
+    if (this._yamlMode) {
+      const yamlEditor = this._yamlEditor;
+      if (yamlEditor && JSON.stringify(yamlEditor.value) !== JSON.stringify([this.field])) {
+        yamlEditor.setValue([this.field]);
+      }
+    }
+  }
 
   public expand() {
     this.updateComplete.then(() => {
@@ -85,14 +143,15 @@ export class FormCardEditorFieldRow extends LitElement {
   protected render() {
     const schema = this._schema();
     const data = { ...this.field, key: this._errorKey ?? this.key };
-    const yamlValue = { [this.key]: this.field };
+    const yamlValue = [this.field];
     const localize = setupCustomlocalize(this.hass!);
+    const headerLabel = this._computeHeaderLabel(data);
 
     // @ts-ignore
     return html`
       <ha-card outlined>
         <ha-expansion-panel leftChevron>
-          <h3 slot="header">${this.key}</h3>
+          <h3 slot="header">${headerLabel}</h3>
           <slot name="icons" slot="icons"></slot>
           <ha-button-menu
             slot="icons"
@@ -103,19 +162,40 @@ export class FormCardEditorFieldRow extends LitElement {
           >
             <ha-icon-button
               slot="trigger"
-              .label=${this.hass.localize("ui.common.menu")}
+              .label=${localize("ui.common.menu")}
               .path=${mdiDotsVertical}
             >
             </ha-icon-button>
-            <ha-list-item graphic="icon">
+            <ha-list-item
+              graphic="icon"
+              .disabled=${this.disabled || this.first}
+            >
+              ${localize("ui.panel.config.automation.editor.move_up")}
+              <ha-svg-icon slot="graphic" .path=${mdiArrowUp}></ha-svg-icon
+            ></ha-list-item>
+
+            <ha-list-item
+              graphic="icon"
+              .disabled=${this.disabled || this.last}
+            >
               ${localize(
-                `editor.card.fields.edit_${!this._yamlMode ? "yaml" : "ui"}`
+                "ui.panel.config.automation.editor.move_down"
+              )}
+              <ha-svg-icon slot="graphic" .path=${mdiArrowDown}></ha-svg-icon>
+            </ha-list-item>
+
+            <ha-list-item graphic="icon" .disabled=${!this._uiModeAvailable}>
+              ${localize(
+                `ui.panel.config.automation.editor.edit_${!this._yamlMode ? "yaml" : "ui"}`
               )}
               <ha-svg-icon
                 slot="graphic"
                 .path=${mdiPlaylistEdit}
               ></ha-svg-icon>
             </ha-list-item>
+
+            <li divider role="separator"></li>
+
             <ha-list-item
               class="warning"
               graphic="icon"
@@ -130,6 +210,26 @@ export class FormCardEditorFieldRow extends LitElement {
             </ha-list-item>
           </ha-button-menu>
           <div class=${classMap({ "card-content": true })}>
+            ${this._warnings
+              ? html`<ha-alert
+                      alert-type="warning"
+                      .title=${this.hass.localize(
+                              "ui.errors.config.editor_not_supported"
+                      )}
+                >
+                  ${this._warnings!.length > 0 &&
+                  this._warnings![0] !== undefined
+                    ? html` <ul>
+                        ${this._warnings!.map(
+                          (warning) => html`<li>${warning}</li>`
+                        )}
+                      </ul>`
+                    : ""}
+                  ${this.hass.localize(
+                    "ui.errors.config.edit_in_yaml_supported"
+                  )}
+              </ha-alert>`
+              : ""}
             ${this._yamlMode
               ? html` ${this._yamlError
                     ? html` <ha-alert alert-type="error">
@@ -152,6 +252,7 @@ export class FormCardEditorFieldRow extends LitElement {
                   .computeLabel=${this._computeLabelCallback}
                   .computeError=${this._computeError}
                   @value-changed=${this._valueChanged}
+                  @ui-mode-not-available=${this._handleUiModeNotAvailable}
                 ></ha-form>`}
           </div>
         </ha-expansion-panel>
@@ -159,12 +260,29 @@ export class FormCardEditorFieldRow extends LitElement {
     `;
   }
 
+  private _handleUiModeNotAvailable(ev: CustomEvent) {
+    // Prevent possible parent action-row from switching to yamlMode
+    ev.stopPropagation();
+
+    this._warnings = handleStructError(this.hass, ev.detail).warnings;
+    if (!this._yamlMode) {
+      this._yamlMode = true;
+    }
+  }
+
   private async _handleAction(ev: CustomEvent) {
     switch (ev.detail.index) {
       case 0:
-        this._yamlMode = !this._yamlMode;
+        fireEvent(this, "move-up");
         break;
       case 1:
+        fireEvent(this, "move-down");
+        break;
+      case 2:
+        this._yamlMode = !this._yamlMode;
+        this.expand();
+        break;
+      case 3:
         this._onDelete();
         break;
     }
@@ -184,25 +302,28 @@ export class FormCardEditorFieldRow extends LitElement {
 
   private _onYamlChange(ev: CustomEvent) {
     ev.stopPropagation();
-    const value = { ...ev.detail.value };
+    if (!ev.detail.isValid) {
+      return;
+    }
+    const value = (ev.detail.value as FormCardField[])[0];
 
-    if (typeof value !== "object" || Object.keys(value).length !== 1) {
+    if (typeof value !== "object") {
       this._yamlError = "yaml_error";
       return;
     }
-    const key = Object.keys(value)[0];
+    const key = value.key;
     if (this.excludeKeys.includes(key)) {
       this._yamlError = "key_not_unique";
       return;
     }
     this._yamlError = undefined;
 
-    const newValue = { ...value[key], key };
+    const newValue = {...value};
 
     fireEvent(this, "value-changed", { value: newValue });
   }
 
-  private _maybeSetKey(value): void {
+  private _maybeSetKey(value: FormCardField): void {
     const nameChanged = value.name !== this.field.name;
     const keyChanged = value.key !== this.key;
     if (!nameChanged || keyChanged) {
@@ -233,7 +354,7 @@ export class FormCardEditorFieldRow extends LitElement {
 
   private _valueChanged(ev: CustomEvent) {
     ev.stopPropagation();
-    const value = { ...ev.detail.value };
+    const value = (ev.detail.value as FormCardField);
     this._maybeSetKey(value);
 
     // Don't allow to set an empty key, or duplicate an existing key.
@@ -256,10 +377,19 @@ export class FormCardEditorFieldRow extends LitElement {
     if (
       Object.keys(this.field.selector!)[0] !== Object.keys(value.selector)[0]
     ) {
-      delete value.default;
+      delete value.value;
     }
 
     fireEvent(this, "value-changed", { value });
+  }
+
+  private _computeHeaderLabel(field: FormCardField) {
+    let labelPrefix = "";
+    if (field.selector) {
+      const selectorType = Object.keys(field.selector)[0];
+      labelPrefix = this.hass.localize(`ui.components.selectors.selector.types.${selectorType}`) ?? "";
+    }
+    return `${labelPrefix ? `${labelPrefix}: ` : ""}${field.key}`;
   }
 
   private _computeLabelCallback = (
@@ -303,6 +433,21 @@ export class FormCardEditorFieldRow extends LitElement {
         .card-content {
           padding: 16px;
         }
+        .disabled-bar {
+          background: var(--divider-color, #e0e0e0);
+          text-align: center;
+          border-top-right-radius: var(--ha-card-border-radius, 12px);
+          border-top-left-radius: var(--ha-card-border-radius, 12px);
+        }
+        mwc-list-item[disabled] {
+          --mdc-theme-text-primary-on-background: var(--disabled-text-color);
+        }
+        mwc-list-item.hidden {
+          display: none;
+        }
+        .warning ul {
+          margin: 4px 0;
+        }
 
         .root > :not([own-margin]):not(:last-child) {
           margin-bottom: 24px;
@@ -316,6 +461,10 @@ export class FormCardEditorFieldRow extends LitElement {
 
         .action-icon {
           display: none;
+        }
+
+        li[role="separator"] {
+          border-bottom-color: var(--divider-color);
         }
       `,
     ];

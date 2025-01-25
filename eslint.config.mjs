@@ -1,5 +1,4 @@
 /* eslint-disable import/no-extraneous-dependencies */
-import unusedImports from "eslint-plugin-unused-imports";
 import globals from "globals";
 import tsParser from "@typescript-eslint/parser";
 import path from "node:path";
@@ -28,7 +27,7 @@ export default [
   ),
   {
     plugins: {
-      "unused-imports": unusedImports,
+      // "unused-imports": unusedImports,
     },
 
     languageOptions: {
@@ -69,7 +68,7 @@ export default [
       "object-shorthand": "off",
       "func-names": "off",
       "no-underscore-dangle": "off",
-      strict: "off",
+      "strict": "off",
       "no-plusplus": "off",
       "no-bitwise": "error",
       "comma-dangle": "off",
@@ -78,7 +77,7 @@ export default [
       "no-param-reassign": "off",
       "no-multi-assign": "off",
       "no-console": "warn",
-      radix: "off",
+      "radix": "off",
       "no-alert": "off",
       "no-nested-ternary": "off",
       "prefer-destructuring": "off",
@@ -152,21 +151,21 @@ export default [
           leadingUnderscore: "require",
         },
       ],
+      "@typescript-eslint/no-unused-vars": "off",
+      // "@typescript-eslint/no-unused-vars": [
+      //   "error",
+      //   {
+      //     args: "all",
+      //     argsIgnorePattern: "^_",
+      //     caughtErrors: "all",
+      //     caughtErrorsIgnorePattern: "^_",
+      //     destructuredArrayIgnorePattern: "^_",
+      //     varsIgnorePattern: "^_",
+      //     ignoreRestSiblings: true,
+      //   },
+      // ],
 
-      "@typescript-eslint/no-unused-vars": [
-        "error",
-        {
-          args: "all",
-          argsIgnorePattern: "^_",
-          caughtErrors: "all",
-          caughtErrorsIgnorePattern: "^_",
-          destructuredArrayIgnorePattern: "^_",
-          varsIgnorePattern: "^_",
-          ignoreRestSiblings: true,
-        },
-      ],
-
-      "unused-imports/no-unused-imports": "error",
+      "unused-imports/no-unused-imports": "off",
       "lit/attribute-names": "error",
       "lit/attribute-value-entities": "off",
       "lit/no-template-map": "off",
@@ -179,7 +178,7 @@ export default [
       "lit-a11y/role-has-required-aria-attrs": "error",
       "@typescript-eslint/consistent-type-imports": "error",
       "@typescript-eslint/no-import-type-side-effects": "error",
-      camelcase: "off",
+      "camelcase": "off",
       "@typescript-eslint/no-dynamic-delete": "off",
       "@typescript-eslint/no-empty-object-type": [
         "error",

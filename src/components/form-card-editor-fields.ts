@@ -1,4 +1,4 @@
-import type { CSSResultGroup } from "lit";
+import type { CSSResultGroup, PropertyValues } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { repeat } from "lit/directives/repeat.js";
@@ -6,21 +6,18 @@ import { mdiPlus, mdiDrag } from "@mdi/js";
 
 import type { HomeAssistant } from "home-assistant-types";
 
-import type { FormCardField, FormCardFields } from "../cards/form-card-config";
-import type { FormCardEditorFieldRow } from "./form-card-editor-field-row";
-// eslint-disable-next-line
 import type { HaSortable } from "home-assistant-types/dist/components/ha-sortable";
-import { fireEvent } from "../utils/fire_event";
-import { loadHaComponents } from "../utils/loader";
+import type { FormCardField } from "../cards/form-card-config";
+import type { FormCardEditorFieldRow } from "./form-card-editor-field-row";
+import { fireEvent , loadHaComponents , nextRender } from "../utils";
 import "./form-card-editor-field-row";
 import setupCustomlocalize from "../localize";
-import { reorderRecord } from "../utils/tools";
 
 @customElement("form-card-editor-fields")
 export class FormCardEditorFields extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property({ attribute: false }) public fields!: FormCardFields;
+  @property({ attribute: false }) public fields!: FormCardField[];
 
   @property({ type: Boolean }) public disabled = false;
 
@@ -28,7 +25,7 @@ export class FormCardEditorFields extends LitElement {
 
   private _fieldKeys = new WeakMap<FormCardField, string>();
 
-  private _focusLastActionOnChange = false;
+  private _focusLastFieldOnChange = false;
 
   public connectedCallback() {
     super.connectedCallback();
@@ -36,7 +33,7 @@ export class FormCardEditorFields extends LitElement {
   }
 
   private _getIndex(key: string) {
-    return Object.keys(this.fields).indexOf(key);
+    return this.fields?.findIndex(field => field.key === key) ?? -1;
   }
 
   // private _getKey(index: number) {
@@ -44,7 +41,10 @@ export class FormCardEditorFields extends LitElement {
   //   return keys[index] ?? keys[0];
   // }
   private _getKey(field: FormCardField) {
-    return Object.values(this.fields).indexOf(field) ?? -1;
+    if (!this._fieldKeys.has(field)) {
+      this._fieldKeys.set(field, Math.random().toString());
+    }
+    return this._fieldKeys.get(field)!;
   }
 
   private _moveUp(ev) {
@@ -62,10 +62,11 @@ export class FormCardEditorFields extends LitElement {
   }
 
   private _move(oldIndex: number, newIndex: number) {
-    let fields: FormCardFields = {};
-    fields = { ...this.fields };
-    this.fields = reorderRecord(fields, oldIndex, newIndex);
-    fireEvent(this, "value-changed", { value: this.fields });
+    const fields = this.fields.concat();
+    const item = fields.splice(oldIndex, 1)[0];
+    fields.splice(newIndex, 0, item);
+    this.fields = fields;
+    fireEvent(this, "value-changed", { value: fields });
   }
 
   private _fieldMoved(ev: CustomEvent): void {
@@ -81,19 +82,17 @@ export class FormCardEditorFields extends LitElement {
 
   private _addField() {
     const key = this._getUniqueKey(
-      this.hass.localize("ui.panel.config.script.editor.field.field") ||
-        "field",
-      this.fields || {}
+      this.hass.localize("ui.panel.config.script.editor.field.field") || "field",
+      this.fields || []
     );
-    const fields = {
-      ...(this.fields || {}),
-      [key]: {
-        selector: {
-          text: null,
-        },
+    const fields = this.fields.concat({
+      key,
+      selector: {
+        text: {},
       },
-    };
-    this._focusLastActionOnChange = true;
+    });
+
+    this._focusLastFieldOnChange = true;
     fireEvent(this, "value-changed", { value: fields });
   }
 
@@ -122,21 +121,23 @@ export class FormCardEditorFields extends LitElement {
           group="fields"
           invert-swap
           @item-moved=${this._fieldMoved}
+          @item-added=${this._fieldAdded}
+          @item-removed=${this._fieldRemoved}
         >
           <div class="fields">
             ${repeat(
-              Object.values(this.fields),
+              this.fields,
               (field) => this._getKey(field),
               (field, idx) => html`
                 <form-card-editor-field-row
-                  .key=${Object.keys(this.fields)[idx]}
                   .sortableData=${field}
+                  .key=${field.key}
                   .index=${idx}
                   .first=${idx === 0}
-                  .last=${idx === Object.keys(this.fields).length - 1}
-                  .excludeKeys=${Object.keys(this.fields).filter(
-                    (k) => k !== Object.keys(this.fields)[idx]
-                  )}
+                  .last=${idx === this.fields.length - 1}
+                  .excludeKeys=${this.fields.filter(
+                          (f) => f !== field)
+                          .map((f) => f.key)}
                   .field=${field}
                   .disabled=${this.disabled}
                   @move-down=${this._moveDown}
@@ -147,9 +148,9 @@ export class FormCardEditorFields extends LitElement {
                   ${this._showReorder && !this.disabled
                     ? html`
                         <div class="handle" slot="icons">
-                          <ha-svg-icon .path=${mdiDrag}></ha-svg-icon>
+                            <ha-svg-icon .path=${mdiDrag}></ha-svg-icon>
                         </div>
-                      `
+                    `
                     : nothing}
                 </form-card-editor-field-row>
               `
@@ -197,43 +198,77 @@ export class FormCardEditorFields extends LitElement {
     );
   }
 
-  private _fieldChanged(ev: CustomEvent) {
-    ev.stopPropagation();
+  protected updated(changedProps: PropertyValues) {
+    super.updated(changedProps);
+    if (changedProps.has("fields") && this._focusLastFieldOnChange) {
+      this._focusLastFieldOnChange = false;
 
-    const key = (ev.target as any).key;
-    let fields: FormCardFields = {};
-    if (ev.detail.value === null) {
-      fields = { ...this.fields };
-      delete fields[key];
-    } else {
-      const newValue = { ...ev.detail.value };
-      const newKey = newValue.key;
-      delete newValue.key;
-      const keyChanged = key !== newKey;
-
-      // If key is changed, recreate the object to maintain the same insertion order.
-      if (keyChanged) {
-        Object.entries(this.fields).forEach(([k, v]) => {
-          if (k === key) {
-            fields[newKey] = newValue;
-          } else fields[k] = v;
-        });
-      } else {
-        fields = { ...this.fields };
-        fields[key] = newValue;
-      }
+      const row = this.shadowRoot!.querySelector<FormCardEditorFieldRow>(
+        "form-card-editor-field-row:last-of-type"
+      )!;
+      row.updateComplete.then(() => {
+        row.expand();
+        row.scrollIntoView();
+        row.focus();
+      });
     }
+  }
+
+  private async _fieldAdded(ev: CustomEvent): Promise<void> {
+    ev.stopPropagation();
+    const { index, data } = ev.detail;
+    // noinspection UnnecessaryLocalVariableJS
+    const fields = [
+      ...this.fields.slice(0, index),
+      data,
+      ...this.fields.slice(index),
+    ];
+    // Add action locally to avoid UI jump
+    this.fields = fields;
+    await nextRender();
+    fireEvent(this, "value-changed", { value: this.fields });
+  }
+
+  private async _fieldRemoved(ev: CustomEvent): Promise<void> {
+    ev.stopPropagation();
+    const { index } = ev.detail;
+    const field = this.fields[index];
+    // Remove field locally to avoid UI jump
+    this.fields = this.fields.filter((f) => f !== field);
+    await nextRender();
+    // Ensure field is removed even after update
+    const fields = this.fields.filter((f) => f !== field);
     fireEvent(this, "value-changed", { value: fields });
   }
 
-  private _getUniqueKey(base: string, fields: FormCardFields): string {
+  private _fieldChanged(ev: CustomEvent) {
+    ev.stopPropagation();
+    const fields = [...this.fields];
+    const newValue = ev.detail.value;
+    const index = (ev.target as any).index;
+
+    if (newValue === null) {
+      fields.splice(index, 1);
+    } else {
+      // Store key on new value.
+      const key = this._getKey(fields[index]);
+      this._fieldKeys.set(newValue, key);
+
+      fields[index] = newValue;
+    }
+
+    fireEvent(this, "value-changed", { value: fields });
+  }
+
+  private _getUniqueKey(base: string, fields: FormCardField[]): string {
     let key = base;
-    if (base in fields) {
+    if (fields.find((f) => f.key === base)) {
       let i = 2;
       do {
         key = `${base}_${i}`;
         i++;
-      } while (key in fields);
+        // eslint-disable-next-line no-loop-func
+      } while (fields.find((f) => f.key === key));
     }
     return key;
   }
@@ -241,10 +276,48 @@ export class FormCardEditorFields extends LitElement {
   static get styles(): CSSResultGroup {
     return [
       css`
+        .fields {
+          padding: 16px;
+          margin: -16px;
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .sortable-ghost {
+          background: none;
+          border-radius: var(--ha-card-border-radius, 12px);
+        }
+
+        .sortable-drag {
+          background: none;
+        }
+
         form-card-editor-field-row {
           display: block;
-          margin-bottom: 16px;
           scroll-margin-top: 48px;
+        }
+
+        ha-svg-icon {
+          height: 20px;
+        }
+
+        .handle {
+          padding: 12px;
+          cursor: move; /* fallback if grab cursor is unsupported */
+          cursor: grab;
+        }
+
+        .handle ha-svg-icon {
+          pointer-events: none;
+          height: 24px;
+        }
+
+        .buttons {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          order: 1;
         }
       `,
     ];
@@ -254,5 +327,11 @@ export class FormCardEditorFields extends LitElement {
 declare global {
   interface HTMLElementTagNameMap {
     "form-card-editor-fields": FormCardEditorFields;
+  }
+
+  // for fire event
+  interface HASSDomEvents {
+    "move-down": undefined;
+    "move-up": undefined;
   }
 }

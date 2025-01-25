@@ -11,14 +11,12 @@ import type { RenderTemplateResult } from "home-assistant-types/dist/data/ws-tem
 
 import type { LovelaceRowEditor } from "home-assistant-types/dist/panels/lovelace/types";
 import { FormBaseCard } from "../shared/form-base-card";
-import { fireEvent } from "../utils/fire_event";
-import { subscribeRenderTemplate } from "../utils/ws-templates";
+import { fireEvent , subscribeRenderTemplate , applyToStrings } from "../utils";
 
 import { FORM_ENTITY_ROW_EDITOR_NAME, FORM_ENTITY_ROW_NAME } from "../const";
 
 import type { FormEntityRowConfig } from "./form-entity-row-config";
 
-import { applyToStrings } from "../utils/tools";
 
 const OPTIONS = ["icon", "name", "value", "entity"] as const;
 

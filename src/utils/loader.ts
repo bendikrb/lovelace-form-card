@@ -47,10 +47,10 @@ export const loadConfigDashboard = async () => {
   await configRouter?.routerOptions?.routes?.script?.load?.(); // Load ha-script-fields
   await customElements.whenDefined("ha-config-dashboard");
   await customElements.whenDefined("ha-config-script");
+  await customElements.whenDefined("ha-")
 };
 
 export const loadDeveloperToolsTemplate = async () => {
-  await customElements.whenDefined("partial-panel-resolver");
   await customElements.whenDefined("partial-panel-resolver");
   const ppResolver = document.createElement("partial-panel-resolver");
   const routes = (ppResolver as any)._getRoutes([
@@ -63,4 +63,5 @@ export const loadDeveloperToolsTemplate = async () => {
   const dtRouter: any = document.createElement("developer-tools-router");
   await dtRouter?.routerOptions?.routes?.template?.load?.();
   await customElements.whenDefined("developer-tools-template");
+  await customElements.whenDefined("ha-yaml-editor");
 };

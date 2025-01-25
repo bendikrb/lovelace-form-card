@@ -9,12 +9,10 @@ import type { HaFormSchema } from "home-assistant-types/dist/components/ha-form/
 import type { EntitiesCardEntityConfig } from "home-assistant-types/dist/panels/lovelace/cards/types";
 import type { UiAction } from "home-assistant-types/dist/panels/lovelace/components/hui-action-editor";
 // noinspection ES6UnusedImports
-// eslint-disable-next-line unused-imports/no-unused-imports
-import type { ConfigChangedEvent as _ConfigChangedEvent } from "home-assistant-types/dist/panels/lovelace/editor/hui-element-editor";
+import type { ConfigChangedEvent } from "home-assistant-types/dist/panels/lovelace/editor/hui-element-editor";
 import { computeDomain } from "../utils/entity/compute_domain";
 
-import { fireEvent } from "../utils/fire_event";
-import { loadHaComponents } from "../utils/loader";
+import { fireEvent , loadHaComponents } from "../utils";
 import setupCustomlocalize from "../localize";
 
 const actions: UiAction[] = ["perform-action", "none"];

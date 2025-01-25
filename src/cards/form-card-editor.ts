@@ -10,21 +10,20 @@ import type { HaFormSchema } from "home-assistant-types/dist/components/ha-form/
 import type { UiAction } from "home-assistant-types/dist/panels/lovelace/components/hui-action-editor";
 
 import memoizeOne from "memoize-one";
-import { fireEvent } from "../utils/fire_event";
 import { FORM_CARD_EDITOR_NAME } from "../const";
 import type { FormCardConfig, FormCardFields } from "./form-card-config";
 import { formCardConfigStruct } from "./form-card-config";
 import setupCustomlocalize from "../localize";
 
 import type { FormCardEditorFields } from "../components/form-card-editor-fields";
-import { loadConfigDashboard, loadHaComponents } from "../utils/loader";
+import { fireEvent, loadConfigDashboard, loadHaComponents } from "../utils";
 import { computeActionsFormSchema } from "../shared/config";
 import { GENERIC_LABELS } from "../utils/form/generic-fields";
 
 import "../components/form-card-editor-fields";
 
 const actions: UiAction[] = ["perform-action", "none"];
-const layoutOptions = ["horizontal", "vertical", "default"];
+const layoutOptions = ["default", "horizontal", "vertical"];
 const computeSchema = memoizeOne((t: LocalizeFunc): HaFormSchema[] => [
   {
     name: "title",
@@ -96,6 +95,7 @@ export class FormCardEditor extends LitElement implements LovelaceCardEditor {
 
   protected firstUpdated(changedProps: PropertyValues): void {
     super.firstUpdated(changedProps);
+    this.hass.loadFragmentTranslation("config");
   }
 
   connectedCallback() {
@@ -187,7 +187,6 @@ export class FormCardEditor extends LitElement implements LovelaceCardEditor {
       ...this._config!,
       fields: ev.detail.value as FormCardFields,
     };
-    console.log("Fields changed!", value);
     fireEvent(this, "config-changed", { config: value });
   }
 

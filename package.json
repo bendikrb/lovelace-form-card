@@ -67,7 +67,7 @@
     "format:eslint": "eslint --flag unstable_config_lookup_from_file \"src/**/*.ts\" --cache --cache-strategy=content --cache-location=node_modules/.cache/eslint/.eslintcache --ignore-pattern=.gitignore --fix",
     "lint:prettier": "prettier src --cache --check",
     "format:prettier": "prettier src --cache --write",
-    "bunbuild": "bun build ./src/form-card.ts --sourcemap=external --minify --outdir=dist",
+    "build-bun": "bun build ./src/form-card.ts --sourcemap=external --minify --outdir=dist",
     "build": "rollup -c --bundleConfigAsCjs",
     "watch": "rollup -c --watch"
   }

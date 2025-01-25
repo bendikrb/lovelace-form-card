@@ -28,6 +28,7 @@ export default function setupCustomlocalize(hass?: HomeAssistant) {
 
     let translated = getTranslatedString(key, lang);
     if (!translated) translated = getTranslatedString(key, DEFAULT_LANG);
+    if (!translated) translated = hass?.localize(key);
     return translated ?? key;
   };
 }

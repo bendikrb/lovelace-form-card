@@ -11,18 +11,22 @@ import type {
 } from "home-assistant-types/dist/data/ws-templates";
 import type { HaProgressButton } from "home-assistant-types/dist/components/buttons/ha-progress-button";
 
-import { subscribeRenderTemplate } from "../utils/ws-templates";
+import {
+  subscribeRenderTemplate,
+  cardStyle,
+  loadHaComponents,
+  loadConfigDashboard,
+  registerCustomCard,
+  fireEvent,
+  slugify, loadDeveloperToolsTemplate,
+} from "../utils";
 
 // import "../ha/components/ha-card";
 // import "../ha/components/ha-button";
 
 import { FORM_CARD_EDITOR_NAME, FORM_CARD_NAME } from "../const";
 import type { FormCardConfig, FormCardField } from "./form-card-config";
-import { cardStyle } from "../utils/card-styles";
-import { loadHaComponents, loadConfigDashboard } from "../utils/loader";
-import { registerCustomCard } from "../utils/custom-cards";
 import { FormBaseCard } from "../shared/form-base-card";
-import { fireEvent } from "../utils/fire_event";
 
 registerCustomCard({
   type: FORM_CARD_NAME,
@@ -57,10 +61,22 @@ export class FormCard extends FormBaseCard {
     Record<string, RenderTemplateResult | RenderTemplateError | undefined>
   > = {};
 
-  // @state() private _unsubRenderTemplates: Map<
-  //   string,
-  //   Promise<UnsubscribeFunc>
-  // > = new Map();
+  private _debugData: HASSDomEvents["form-card-submit-action"] | null = null;
+
+  constructor() {
+    super();
+    this.addEventListener(
+      "form-card-submit-action",
+      (e: Event) => {
+        this._debugData = (e as CustomEvent<HASSDomEvents["form-card-submit-action"]>).detail;
+        this.requestUpdate();
+      }
+    );
+  }
+
+  private _getFieldIndex(key: string) {
+    return this._config?.fields?.findIndex(field => field.key === key) ?? -1;
+  }
 
   private _getTemplateKey(fieldId: string, path: string): string {
     return `${fieldId}:${path}`;
@@ -91,6 +107,7 @@ export class FormCard extends FormBaseCard {
   public static async getConfigElement(): Promise<LovelaceCardEditor> {
     await import("./form-card-editor");
     await loadHaComponents();
+    await loadDeveloperToolsTemplate();
     // await setupFormCardEditorFields();
     return document.createElement(FORM_CARD_EDITOR_NAME) as LovelaceCardEditor;
   }
@@ -101,25 +118,29 @@ export class FormCard extends FormBaseCard {
     const entities = Object.keys(hass.states);
     const entity_id = entities[0];
     const field_name = entity_id.substring(0, 15);
+    const field_key = slugify(field_name);
     return {
       type: `custom:${FORM_CARD_NAME}`,
       layout: "default",
-      fields: {
-        [field_name]: {
+      fields: [
+        {
           name: field_name,
+          key: field_key,
           selector: {
             text: {},
           },
         },
-      },
+      ],
     };
   }
 
   setConfig(config: FormCardConfig) {
     // Disconnect any templates that are no longer present or have changed
-    Object.entries(config.fields).forEach(([fieldId, fieldConfig]) => {
+    config.fields.forEach((fieldConfig) => {
+      const fieldId = fieldConfig.key;
+      const fieldIndex = this._getFieldIndex(fieldId);
       const oldTemplates = this._findTemplatesInObject(
-        this._config?.fields[fieldId] || {}
+        this._config?.fields[fieldIndex] || {}
       );
       const newTemplates = this._findTemplatesInObject(fieldConfig);
 
@@ -139,27 +160,26 @@ export class FormCard extends FormBaseCard {
 
     // Initialize data with default values from config
     if (config.fields) {
-      Object.entries(config.fields).forEach(([key, field]) => {
+      config.fields.forEach((field) => {
         if (field.value !== undefined) {
-          this._value!.data![key] = field.value;
+          this._value!.data![field.key] = field.value;
         }
       });
     }
 
     this._initialValue = structuredClone(this._value);
-
     this._config = { ...config };
   }
 
   private async _tryConnect(): Promise<void> {
     if (!this._config?.fields) return;
 
-    Object.entries(this._config.fields).forEach(([fieldId, fieldConfig]) => {
+    this._config.fields.forEach((fieldConfig) => {
       const templates = this._findTemplatesInObject(fieldConfig);
       templates.forEach(([path, template]) => {
-        const templateKey = this._getTemplateKey(fieldId, path);
+        const templateKey = this._getTemplateKey(fieldConfig.key, path);
         this._tryConnectTemplate(
-          fieldId,
+          fieldConfig.key,
           path,
           template,
           templateKey,
@@ -332,8 +352,8 @@ export class FormCard extends FormBaseCard {
     const processedData: Record<string, any> = {};
 
     // Process all fields, including ones that haven't been edited
-    Object.entries(this._config.fields).forEach(([key, field]) => {
-      processedData[key] = this._getProcessedFieldValue(key, field);
+    this._config.fields.forEach((field) => {
+      processedData[field.key] = this._getProcessedFieldValue(field.key, field);
     });
 
     return {
@@ -348,14 +368,14 @@ export class FormCard extends FormBaseCard {
     }
     const hasPendingChanges = this._hasPendingChanges();
 
-    const formFields = Object.entries(this._config.fields).map(
-      ([fieldId, fieldConfig]) => {
+    const formFields = this._config.fields.map(
+      (fieldConfig) => {
         // Process the entire field config to resolve any templates
         const processedConfig = this._processTemplatedObject(
-          fieldId,
+          fieldConfig.key,
           fieldConfig
         );
-        const fieldValue = this._getProcessedFieldValue(fieldId, fieldConfig);
+        const fieldValue = this._getProcessedFieldValue(fieldConfig.key, fieldConfig);
 
         const entity_id = processedConfig.entity;
         const base = this.hass.states[entity_id];
@@ -372,7 +392,7 @@ export class FormCard extends FormBaseCard {
 
         // const state = processedConfig.state ?? base?.state;
         return {
-          key: fieldId,
+          key: fieldConfig.key,
           name,
           description: processedConfig.description ?? undefined,
           required: processedConfig.required ?? undefined,
@@ -380,7 +400,7 @@ export class FormCard extends FormBaseCard {
           entity: entity_id,
           value: fieldValue,
           placeholder: processedConfig.placeholder ?? undefined,
-          disabled: processedConfig.disabled ?? undefined,
+          disabled: processedConfig.disabled ?? false,
         };
       }
     );
@@ -409,6 +429,7 @@ export class FormCard extends FormBaseCard {
             </ha-progress-button>
           </div>
         </div>
+        ${this.editMode ? this._renderDebug() : nothing}
       </ha-card>
     `;
   }
@@ -417,6 +438,8 @@ export class FormCard extends FormBaseCard {
     const selector = dataField?.selector ?? { text: undefined };
     const layout = this._config?.layout ?? "default";
     const useSettingsRow = layout === "horizontal" || layout === "vertical";
+    const selectorLabel = layout === "vertical" ? undefined : dataField.name ?? undefined;
+    const selectorHelper = layout === "vertical" ? undefined : dataField.description ?? undefined;
 
     // @ts-ignore
     const selectorElement = html`
@@ -429,8 +452,8 @@ export class FormCard extends FormBaseCard {
         .placeholder=${dataField.placeholder ?? undefined}
         .required=${dataField.required ?? undefined}
         .disabled=${dataField.disabled ?? undefined}
-        .label=${dataField.name ?? undefined}
-        .helper=${dataField.helper ?? undefined}
+        .label=${selectorLabel}
+        .helper=${selectorHelper}
       ></ha-selector>
     `;
 
@@ -441,10 +464,11 @@ export class FormCard extends FormBaseCard {
     return html`
       <ha-settings-row
         .narrow=${this.narrow}
-        .slim=${layout === "horizontal"}
+        .slim=${true}
         class=${`layout-${layout}`}
+        wrap-heading
       >
-        ${layout === "horizontal"
+        ${layout === "vertical"
           ? [
               dataField.name
                 ? html`<span slot="heading">${dataField.name}</span>`
@@ -460,6 +484,22 @@ export class FormCard extends FormBaseCard {
       </ha-settings-row>
     `;
   };
+
+  private _renderDebug() {
+    if (!this._debugData) {
+      return nothing;
+    }
+    return html`
+      <ha-expansion-panel class="debug">
+        <span slot="header">Debug</span>
+        <ha-yaml-editor
+          read-only
+          auto-update
+          .value=${this._debugData}
+        ></ha-yaml-editor>
+      </ha-expansion-panel>
+    `;
+  }
 
   private _formDataChanged(ev: CustomEvent) {
     ev.stopPropagation();
@@ -500,7 +540,7 @@ export class FormCard extends FormBaseCard {
       return;
     }
     const variables = {
-      value: value.value,
+      value,
     };
 
     const processedData: Promise<any>[] = Object.entries(

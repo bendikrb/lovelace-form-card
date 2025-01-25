@@ -1,0 +1,42 @@
+name: Release
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install
+        run: bun install
+      - name: Bump version
+        run: |
+          VERSION=${{ github.event.release.tag_name }}
+          VERSION=${VERSION#v}
+          jq --arg version "$VERSION" '.version = $version' package.json > tmp.json && mv tmp.json package.json          
+      - name: Build
+        run: bun build ./src/form-card.ts --minify --outdir=dist
+      - name: Zip the files
+        uses: thedoctor0/zip-release@0.7.6
+        with:
+          type: zip
+          path: dist
+          filename: form-card.zip
+      - name: Upload JS files to release
+        uses: svenstaro/upload-release-action@2.9.0
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: dist/*.js
+          file_glob: true
+          tag: ${{ github.ref }}
+          overwrite: true
+      - name: Upload Zip file to release
+        uses: svenstaro/upload-release-action@2.9.0
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: form-card.zip
+          tag: ${{ github.ref }}
+          overwrite: true
