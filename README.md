@@ -75,9 +75,9 @@ title: My Custom Form
 fields:
   - key: text_field
     name: Text Field
+    entity: input_text.my_text
     selector:
       text: { }
-    value: "Sample text"
   - key: number_field
     name: Number Field
     selector:
@@ -88,9 +88,11 @@ fields:
     value: "50"
 save_action:
   action: call-service
-  service: input_boolean.toggle
+  service: input_text.set_value
   target:
-    entity_id: input_boolean.my_toggle
+    entity_id: input_text.my_text
+  data:
+    value: "{{ value['number_field'] }}"
 ```
 </details>
 
@@ -111,13 +113,16 @@ save_action:
 
 | Parameter               | Type       | Default        | Required? | Description                                                                                |
 |-------------------------|------------|----------------|-----------|--------------------------------------------------------------------------------------------|
-| `type`                  | `string`   | N/A            | ✅         | Must be set to `custom:form-card-entity-row`.                                              |
+| `type`                  | `string`   | N/A            | ✅         | Must be set to `custom:form-entity-row`.                                                   |
 | `selector`              | `selector` | N/A            | ✅         | [Selector][home-assistant-selector-docs] configuration.                                    |
+| `entity`                | `string`   | N/A            | ✅         | Entity ID for the field.                                                                   |
 | `name`                  | `string`   | N/A            | ❌         | Display name for the field.                                                                |
 | `value`                 | `any`      | `entity` state | ❌         | Default value for the field. Will be set to `entity` (if specified) state if not provided. |
 | `icon`                  | `string`   | N/A            | ❌         | Icon for the field.                                                                        | 
 | `spread_values_to_data` | `boolean`  | `false`        | ❌         | If `true`, spreads form values into action payload directly.                               |
 | `change_action`         | `action`   | N/A            | ❌         | Defines what [action][home-assistant-action-docs] occurs when the field is changed.        |
+
+If `entity` is provided, it will be used as the default value for `target` in your `change_action`.
 
 
 #### Field Options
@@ -137,7 +142,16 @@ Each element in the `fields` array supports the following options:
 | `disabled`    | `boolean`  | `false`        | ❌         | Whether the field is disabled.                                                             |
 
 
-All options accept [templates][home-assistant-template-docs].
+All options accept [jinja2 templates][home-assistant-template-docs].
+
+The templates have access to a few special variables. Those are:
+
+  - `config` - an object containing the card configuration
+  - `user` - the username of the currently logged in user
+
+For entity rows with `entity` specified, the following variables are also available:
+  - `entity` - the entity ID of the field
+
 
 ---
 
@@ -189,8 +203,6 @@ entities:
     change_action:
       action: call-service
       service: input_text.set_value
-      target:
-        entity_id: input_text.my_text
       data:
         value: "{{ value }}"
 ```
