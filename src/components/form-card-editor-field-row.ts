@@ -8,9 +8,10 @@ import memoizeOne from "memoize-one";
 
 import type { HomeAssistant } from "home-assistant-types";
 import type { SchemaUnion } from "home-assistant-types/dist/components/ha-form/types";
-import { mdiDelete, mdiDotsVertical, mdiPlaylistEdit, mdiArrowUp, mdiArrowDown } from "@mdi/js";
-import type { HaExpansionPanel } from "home-assistant-types/dist/components/ha-expansion-panel";
 import type { HaYamlEditor } from "home-assistant-types/dist/components/ha-yaml-editor";
+import type { HaExpansionPanel } from "home-assistant-types/dist/components/ha-expansion-panel";
+
+import { mdiDelete, mdiDotsVertical, mdiPlaylistEdit, mdiArrowUp, mdiArrowDown } from "@mdi/js";
 import { haStyle } from "../shared/styles";
 
 import { hasTemplate, fireEvent , slugify , cardStyle } from "../utils";

@@ -47,4 +47,9 @@ export const cardStyle = css`
   ha-textfield[type="color"] #label {
     top: 18px;
   }
+  ha-selector-number .input ha-slider {
+  }
+  ha-selector-number .input ha-textfield {
+    display: none;
+  }
 `;

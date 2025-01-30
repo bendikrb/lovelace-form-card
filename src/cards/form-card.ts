@@ -136,7 +136,7 @@ export class FormCard extends FormBaseCard {
 
   setConfig(config: FormCardConfig) {
     // Disconnect any templates that are no longer present or have changed
-    config.fields.forEach((fieldConfig) => {
+    config.fields?.forEach((fieldConfig) => {
       const fieldId = fieldConfig.key;
       const fieldIndex = this._getFieldIndex(fieldId);
       const oldTemplates = this._findTemplatesInObject(
@@ -367,6 +367,7 @@ export class FormCard extends FormBaseCard {
       return nothing;
     }
     const hasPendingChanges = this._hasPendingChanges();
+    const { title } = this._config;
 
     const formFields = this._config.fields.map(
       (fieldConfig) => {
@@ -411,7 +412,13 @@ export class FormCard extends FormBaseCard {
       this._getValue("save_label") ?? this.hass.localize("ui.common.save");
 
     return html`
-      <ha-card class=${classMap({ "fill-container": fill_container })}>
+      <ha-card
+        .header=${title}
+        class=${classMap({
+            "fill-container": fill_container,
+            "no-header": !title,
+        })}
+      >
         <div class="card-content">
           ${formFields.map((dataField) => this._renderField(dataField))}
           <div class="card-actions">
@@ -621,11 +628,6 @@ export class FormCard extends FormBaseCard {
           --expansion-panel-summary-padding: 0 16px;
           --expansion-panel-content-padding: 0;
         }
-        .content {
-          padding: 28px 20px 0;
-          max-width: 1040px;
-          margin: 0 auto;
-        }
         ha-card {
           max-width: 600px;
           margin: 0 auto;
@@ -638,7 +640,10 @@ export class FormCard extends FormBaseCard {
           display: flex;
           justify-content: space-between;
           flex-direction: column;
-          padding: 16px 16px 0 16px;
+          padding: 0 16px 0 16px;
+        }
+        .no-header .card-content {
+          padding-top: 16px;
         }
         .card-actions {
           text-align: right;
@@ -648,7 +653,7 @@ export class FormCard extends FormBaseCard {
           align-items: center;
           margin-top: 16px;
         }
-        .card-content > * {
+        .card-content > *:not(:first-child) {
           display: block;
           margin-top: 16px;
         }

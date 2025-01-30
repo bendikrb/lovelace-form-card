@@ -1,4 +1,4 @@
-import { assign, boolean, object, optional, array, string } from "superstruct";
+import { assign, boolean, object, optional, array, string, any } from "superstruct";
 import type { ActionConfig } from "home-assistant-types/dist/data/lovelace/config/action";
 import type { LovelaceCardConfig } from "home-assistant-types/dist/data/lovelace/config/card";
 
@@ -42,7 +42,7 @@ export const fieldConfigStruct = object({
   required: optional(boolean()),
   selector: object(),
   entity: optional(string()),
-  value: optional(string()),
+  value: optional(any()),
   placeholder: optional(string()),
   disabled: optional(boolean()),
 });
@@ -52,7 +52,7 @@ export const formCardConfigStruct = assign(
   assign(entitySharedConfigStruct, appearanceSharedConfigStruct),
   object({
     title: optional(string()),
-    layout: layoutStruct,
+    layout: optional(layoutStruct),
     fields: array(fieldConfigStruct),
     save_label: optional(string()),
     save_action: optional(actionConfigStruct),

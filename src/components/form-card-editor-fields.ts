@@ -5,8 +5,6 @@ import { repeat } from "lit/directives/repeat.js";
 import { mdiPlus, mdiDrag } from "@mdi/js";
 
 import type { HomeAssistant } from "home-assistant-types";
-
-import type { HaSortable } from "home-assistant-types/dist/components/ha-sortable";
 import type { FormCardField } from "../cards/form-card-config";
 import type { FormCardEditorFieldRow } from "./form-card-editor-field-row";
 import { fireEvent , loadHaComponents , nextRender } from "../utils";
@@ -47,14 +45,14 @@ export class FormCardEditorFields extends LitElement {
     return this._fieldKeys.get(field)!;
   }
 
-  private _moveUp(ev) {
+  private _moveUp(ev: CustomEvent) {
     ev.stopPropagation();
     const index = (ev.target as any).index;
     const newIndex = index - 1;
     this._move(index, newIndex);
   }
 
-  private _moveDown(ev) {
+  private _moveDown(ev: CustomEvent) {
     ev.stopPropagation();
     const index = (ev.target as any).index;
     const newIndex = index + 1;
@@ -274,6 +272,7 @@ export class FormCardEditorFields extends LitElement {
   }
 
   static get styles(): CSSResultGroup {
+    // noinspection CssOverwrittenProperties
     return [
       css`
         .fields {
