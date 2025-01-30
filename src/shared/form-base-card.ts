@@ -17,12 +17,32 @@ export class FormBaseCard extends LitElement {
 
   @property({ attribute: false }) public editMode? = false;
 
+  @property({ attribute: false }) public value?: {
+    action: string;
+    data?: Record<string, any>;
+  };
+
+  @state() protected _value!: this["value"];
+
+  @state() protected _initialValue?: {
+    action: string;
+    data?: Record<string, any>;
+  };
+
   @state() protected _config?: FormCardConfig | FormEntityRowConfig;
 
   @state() protected _unsubRenderTemplates = new Map<
     string,
     Promise<UnsubscribeFunc>
   >();
+
+  protected _updateInitialValue(): void {
+    this._initialValue = structuredClone(this._value);
+  }
+
+  protected _hasPendingChanges(): boolean {
+    return JSON.stringify(this._value) !== JSON.stringify(this._initialValue);
+  }
 
   protected async _renderTemplate(
     template: string,

@@ -38,21 +38,9 @@ registerCustomCard({
 export class FormCard extends FormBaseCard {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property({ attribute: false }) public value?: {
-    action: string;
-    data?: Record<string, any>;
-  };
-
   @property({ type: Boolean, reflect: true }) public narrow = false;
 
   @state() protected _config?: FormCardConfig;
-
-  @state() private _value!: this["value"];
-
-  @state() private _initialValue?: {
-    action: string;
-    data?: Record<string, any>;
-  };
 
   @state() private _error?: string;
 
@@ -167,7 +155,7 @@ export class FormCard extends FormBaseCard {
       });
     }
 
-    this._initialValue = structuredClone(this._value);
+    this._updateInitialValue();
     this._config = { ...config };
   }
 
@@ -311,15 +299,12 @@ export class FormCard extends FormBaseCard {
         action: this.value.action,
         data: { ...this.value.data },
       };
-      this._initialValue = structuredClone(this._value);
+      this._updateInitialValue();
     }
     void this._tryConnect();
   }
 
-  private _hasPendingChanges(): boolean {
-    return JSON.stringify(this._value) !== JSON.stringify(this._initialValue);
-  }
-
+  // noinspection JSUnusedLocalSymbols
   private async _renderTemplateWithResult(template: string): Promise<string> {
     const variables = {
       config: this._config,
@@ -421,6 +406,7 @@ export class FormCard extends FormBaseCard {
       >
         <div class="card-content">
           ${formFields.map((dataField) => this._renderField(dataField))}
+          ${this._error ? html`<div class="error">${this._error}</div>` : nothing}
           <div class="card-actions">
             <ha-button
               @click=${this._resetChanges}
@@ -550,6 +536,7 @@ export class FormCard extends FormBaseCard {
       value,
     };
 
+    // noinspection JSDeprecatedSymbols
     const processedData: Promise<any>[] = Object.entries(
       actionConfig.data ?? actionConfig.service_data ?? {}
     ).map(async ([key, v]): Promise<(string | any)[]> => {
@@ -589,6 +576,7 @@ export class FormCard extends FormBaseCard {
       await this.performAction(this._config.save_action, processedValue);
 
       button.actionSuccess();
+      this._updateInitialValue();
     } catch (err: any) {
       button.actionError();
       this._error = err.message;

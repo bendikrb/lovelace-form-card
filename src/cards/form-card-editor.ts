@@ -22,7 +22,7 @@ import { GENERIC_LABELS } from "../utils/form/generic-fields";
 
 import "../components/form-card-editor-fields";
 
-const actions: UiAction[] = ["perform-action", "none"];
+const actions: UiAction[] = ["none", "perform-action"];
 const layoutOptions = ["default", "horizontal", "vertical"];
 const computeSchema = memoizeOne((t: LocalizeFunc): HaFormSchema[] => [
   {

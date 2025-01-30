@@ -26,6 +26,6 @@ export const computeActionsFormSchema = (
 ): HaFormSchema[] => [
   {
     name,
-    selector: { ui_action: { actions } },
+    selector: { ui_action: { actions, default_action: "none" } },
   },
 ];

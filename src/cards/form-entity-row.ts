@@ -28,19 +28,19 @@ export class FormEntityRow extends FormBaseCard {
 
   public static async getConfigElement(): Promise<LovelaceRowEditor> {
     await import("./form-entity-row-editor");
-    // await setupFormCardEditorFields();
     return document.createElement(
       FORM_ENTITY_ROW_EDITOR_NAME
     ) as LovelaceRowEditor;
   }
 
   private _schema = memoizeOne(
-    (selector: any, name: string) =>
+    (selector: any, name: string, description: string) =>
       [
         {
           name: "value",
           label: name,
           selector: selector && typeof selector === "object" ? selector : {},
+          helper: description,
         },
       ] as const
   );
@@ -217,22 +217,29 @@ export class FormEntityRow extends FormBaseCard {
 
     const name =
       this._getValue("name") ??
+      this._getValue("label") ??
       entity?.attributes?.friendly_name ??
       entity?.entity_id;
 
     const state_value = this._getValue("state") ?? base?.state;
     const value = this._getValue("value") ?? state_value;
+    const description = this._getValue("description") ?? undefined;
 
-    const schema = this._schema(this._config.selector, name);
+    const schema = this._schema(this._config.selector, name, description);
     const data = {
       value,
     };
-
+    const selectorName = this._config.selector
+      ? `selector-${Object.keys(this._config.selector)[0]}`
+      : "selector-text";
+    const wrapperClasses = {
+      [selectorName]: true,
+    };
     const has_action = true;
     const show_state = false;
 
     return html`
-      <div id="wrapper" class="">
+      <div id="wrapper" class=${classMap(wrapperClasses)}>
         <state-badge
           .hass=${this.hass}
           .stateObj=${entity}
@@ -258,7 +265,7 @@ export class FormEntityRow extends FormBaseCard {
   }
 
   protected _computeLabel(s) {
-    return s.label ?? s.name;
+    return s.label ?? s.name ?? undefined;
   }
 
   public async performAction(

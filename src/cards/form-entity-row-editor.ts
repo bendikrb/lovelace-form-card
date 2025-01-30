@@ -14,8 +14,9 @@ import { computeDomain } from "../utils/entity/compute_domain";
 
 import { fireEvent , loadHaComponents } from "../utils";
 import setupCustomlocalize from "../localize";
+import { computeActionsFormSchema } from "../shared/config";
 
-const actions: UiAction[] = ["perform-action", "none"];
+const actions: UiAction[] = ["none", "perform-action"];
 const computeSchema = memoizeOne(
   (t: LocalizeFunc, entity: string): HaFormSchema[] => {
     const _domain = computeDomain(entity);
@@ -66,10 +67,7 @@ const computeSchema = memoizeOne(
             name: "spread_values_to_data",
             selector: { boolean: {} },
           },
-          {
-            name: "change_action",
-            selector: { ui_action: { actions } },
-          },
+          ...computeActionsFormSchema("change_action", actions),
         ],
       },
     ] as const;

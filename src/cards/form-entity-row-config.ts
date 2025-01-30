@@ -5,6 +5,7 @@ import type { EntityConfig } from "home-assistant-types/dist/panels/lovelace/ent
 export interface FormEntityRowConfig extends EntityConfig {
   type: "custom:form-entity-row";
   value?: string;
+  description?: string;
   selector?: Selector;
   change_action?: ActionConfig;
   spread_values_to_data?: boolean;
