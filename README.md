@@ -76,7 +76,7 @@ fields:
   - key: text_field
     name: Text Field
     selector:
-      text: {}
+      text: { }
     value: "Sample text"
   - key: number_field
     name: Number Field
@@ -85,7 +85,7 @@ fields:
         min: 0
         max: 100
         step: 1
-    value: 50
+    value: "50"
 save_action:
   action: call-service
   service: input_boolean.toggle
@@ -98,29 +98,46 @@ save_action:
 
 ### Options
 
-| Parameter                 | Type       | Default       | Required? | Description                                                                 |
-|---------------------------|------------|---------------|-----------|-----------------------------------------------------------------------------|
-| `type`                    | `string`   | N/A           | ✅        | Must be set to `custom:form-card`.                                          |
-| `title`                   | `string`   | N/A           | ❌        | Title of the form card.                                                     |
-| `fields`                  | `array`    | N/A           | ✅        | Array defining form fields (see [`field options`](#field-options) below).   |
-| `spread_values_to_data`   | `boolean`  | `false`       | ❌        | If `true`, spreads form values into action payload directly.                |
-| `save_action`             | `action`   | N/A           | ❌        | Defines what action occurs when the form is submitted.                      |
+| Parameter               | Type      | Default | Required? | Description                                                                          |
+|-------------------------|-----------|---------|-----------|--------------------------------------------------------------------------------------|
+| `type`                  | `string`  | N/A     | ✅         | Must be set to `custom:form-card`.                                                   |
+| `title`                 | `string`  | N/A     | ❌         | Title of the form card.                                                              |
+| `fields`                | `array`   | N/A     | ✅         | Array defining form fields (see [`field options`](#field-options) below).            |
+| `spread_values_to_data` | `boolean` | `false` | ❌         | If `true`, spreads form values into action payload directly.                         |
+| `save_action`           | `action`  | N/A     | ❌         | Defines what [action][home-assistant-action-docs] occurs when the form is submitted. |
+
+
+### Entity row options
+
+| Parameter               | Type       | Default        | Required? | Description                                                                                |
+|-------------------------|------------|----------------|-----------|--------------------------------------------------------------------------------------------|
+| `type`                  | `string`   | N/A            | ✅         | Must be set to `custom:form-card-entity-row`.                                              |
+| `selector`              | `selector` | N/A            | ✅         | [Selector][home-assistant-selector-docs] configuration.                                    |
+| `name`                  | `string`   | N/A            | ❌         | Display name for the field.                                                                |
+| `value`                 | `any`      | `entity` state | ❌         | Default value for the field. Will be set to `entity` (if specified) state if not provided. |
+| `icon`                  | `string`   | N/A            | ❌         | Icon for the field.                                                                        | 
+| `spread_values_to_data` | `boolean`  | `false`        | ❌         | If `true`, spreads form values into action payload directly.                               |
+| `change_action`         | `action`   | N/A            | ❌         | Defines what [action][home-assistant-action-docs] occurs when the field is changed.        |
+
 
 #### Field Options
 
 Each element in the `fields` array supports the following options:
 
-| Parameter      | Type       | Default        | Required? | Description                                                                      |
-|----------------|------------|----------------|-----------|----------------------------------------------------------------------------------|
-| `key`         | `string`   | N/A            | ✅        | Unique identifier for the field.                                                 |
-| `name`        | `string`   | N/A            | ❌        | Display name for the field.                                                      |
-| `entity`      | `string`   | N/A            | ❌        | Entity ID for the field.                                                         |
-| `selector`    | `selector` | N/A            | ✅        | [Selector][home-assistant-selector-docs] configuration.                          |
-| `value`       | `any`      | `entity` state | ❌        | Default value for the field. Will be set to `entity` (if specified) state if not provided. |
-| `description` | `string`   | N/A            | ❌        | Description for the field.                                                       |
-| `placeholder` | `string`   | N/A            | ❌        | Placeholder text for the field.                                                  |
-| `required`    | `boolean`  | `false`        | ❌        | Marks the field as required.                                                     |
-| `disabled`    | `boolean`  | `false`        | ❌        | Whether the field is disabled.                                                   |
+| Parameter     | Type       | Default        | Required? | Description                                                                                |
+|---------------|------------|----------------|-----------|--------------------------------------------------------------------------------------------|
+| `key`         | `string`   | N/A            | ✅         | Unique identifier for the field.                                                           |
+| `name`        | `string`   | N/A            | ❌         | Display name for the field.                                                                |
+| `entity`      | `string`   | N/A            | ❌         | Entity ID for the field.                                                                   |
+| `selector`    | `selector` | N/A            | ✅         | [Selector][home-assistant-selector-docs] configuration.                                    |
+| `value`       | `any`      | `entity` state | ❌         | Default value for the field. Will be set to `entity` (if specified) state if not provided. |
+| `description` | `string`   | N/A            | ❌         | Description for the field.                                                                 |
+| `placeholder` | `string`   | N/A            | ❌         | Placeholder text for the field.                                                            |
+| `required`    | `boolean`  | `false`        | ❌         | Marks the field as required.                                                               |
+| `disabled`    | `boolean`  | `false`        | ❌         | Whether the field is disabled.                                                             |
+
+
+All options accept [templates][home-assistant-template-docs].
 
 ---
 
@@ -195,5 +212,7 @@ entities:
 
 [home-assistant]: https://www.home-assistant.io/
 [home-assistant-selector-docs]: https://www.home-assistant.io/docs/blueprint/selectors
+[home-assistant-action-docs]: https://www.home-assistant.io/dashboards/actions
+[home-assistant-template-docs]: https://www.home-assistant.io/docs/configuration/templating
 [hacs]: https://hacs.xyz
 [release-url]: https://github.com/bendikrb/lovelace-form-card/releases
