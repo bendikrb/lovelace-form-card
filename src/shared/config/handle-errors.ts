@@ -1,10 +1,7 @@
 import { StructError } from "superstruct";
 import type { HomeAssistant } from "home-assistant-types";
 
-export const handleStructError = (
-  hass: HomeAssistant,
-  err: Error
-): { warnings: string[]; errors?: string[] } => {
+export const handleStructError = (hass: HomeAssistant, err: Error): { warnings: string[]; errors?: string[] } => {
   if (!(err instanceof StructError)) {
     return { warnings: [err.message], errors: undefined };
   }

@@ -12,73 +12,62 @@ import type { UiAction } from "home-assistant-types/dist/panels/lovelace/compone
 import type { ConfigChangedEvent } from "home-assistant-types/dist/panels/lovelace/editor/hui-element-editor";
 import { computeDomain } from "../utils/entity/compute_domain";
 
-import { fireEvent , loadHaComponents } from "../utils";
+import { fireEvent, loadHaComponents } from "../utils";
 import setupCustomlocalize from "../localize";
 import { computeActionsFormSchema } from "../shared/config";
 
 const actions: UiAction[] = ["none", "perform-action"];
-const computeSchema = memoizeOne(
-  (t: LocalizeFunc, entity: string): HaFormSchema[] => {
-    const _domain = computeDomain(entity);
-    return [
-      {
-        name: "entity",
-        required: true,
-        selector: { entity: {} },
-      },
-      {
-        type: "grid",
-        name: "",
-        schema: [
-          {
-            name: "name",
-            selector: { text: {} },
-          },
-          {
-            name: "icon",
-            selector: { icon: {} },
-            context: {
-              icon_entity: "entity",
-            },
-          },
-        ],
-      },
-      {
-        name: "value",
-        description: {
-          suffix: "<code>state</code>",
+const computeSchema = memoizeOne((t: LocalizeFunc, entity: string): HaFormSchema[] => {
+  const _domain = computeDomain(entity);
+  return [
+    {
+      name: "entity",
+      required: true,
+      selector: { entity: {} },
+    },
+    {
+      type: "grid",
+      name: "",
+      schema: [
+        {
+          name: "name",
+          selector: { text: {} },
         },
-        selector: { template: {} },
-      },
-      {
-        name: "selector",
-        selector: { selector: {} },
-      },
-      {
-        type: "expandable",
-        name: "",
-        title: t("editor.form.actions_heading.title"),
-        description: {
-          suffix: t("editor.form.actions_heading.description"),
-        },
-        icon: "mdi:playlist-edit",
-        schema: [
-          {
-            name: "spread_values_to_data",
-            selector: { boolean: {} },
+        {
+          name: "icon",
+          selector: { icon: {} },
+          context: {
+            icon_entity: "entity",
           },
-          ...computeActionsFormSchema("change_action", actions),
-        ],
+        },
+      ],
+    },
+    {
+      name: "value",
+      description: {
+        suffix: "<code>state</code>",
       },
-    ] as const;
-  }
-);
+      selector: { template: {} },
+    },
+    {
+      name: "selector",
+      selector: { selector: {} },
+    },
+    {
+      type: "expandable",
+      name: "",
+      title: t("editor.form.actions_heading.title"),
+      description: {
+        suffix: t("editor.form.actions_heading.description"),
+      },
+      icon: "mdi:playlist-edit",
+      schema: [...computeActionsFormSchema("change_action", actions)],
+    },
+  ] as const;
+});
 
 @customElement("form-entity-row-editor")
-export class FormEntityRowEditor
-  extends LitElement
-  implements LovelaceRowEditor
-{
+export class FormEntityRowEditor extends LitElement implements LovelaceRowEditor {
   @property({ attribute: false }) public hass?: HomeAssistant;
 
   @state() private _config?: EntitiesCardEntityConfig;
@@ -125,9 +114,7 @@ export class FormEntityRowEditor
       case "value":
         return customLocalize(`editor.card.fields.${schema.name}`);
       default:
-        return this.hass!.localize(
-          `ui.panel.lovelace.editor.card.generic.${schema.name}`
-        );
+        return this.hass!.localize(`ui.panel.lovelace.editor.card.generic.${schema.name}`);
     }
   };
 }

@@ -1,15 +1,4 @@
-import {
-  array,
-  boolean,
-  dynamic,
-  enums,
-  literal,
-  object,
-  optional,
-  string,
-  type,
-  union,
-} from "superstruct";
+import { array, boolean, dynamic, enums, literal, object, optional, string, type, union } from "superstruct";
 import type { BaseActionConfig } from "home-assistant-types/dist/data/lovelace/config/action";
 
 const actionConfigStructUser = object({
@@ -67,16 +56,7 @@ const actionConfigStructMoreInfo = type({
 });
 
 export const actionConfigStructType = object({
-  action: enums([
-    "none",
-    "toggle",
-    "more-info",
-    "call-service",
-    "perform-action",
-    "url",
-    "navigate",
-    "assist",
-  ]),
+  action: enums(["none", "toggle", "more-info", "call-service", "perform-action", "url", "navigate", "assist"]),
   confirmation: optional(actionConfigStructConfirmation),
 });
 

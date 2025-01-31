@@ -14,7 +14,7 @@ import type { HaExpansionPanel } from "home-assistant-types/dist/components/ha-e
 import { mdiDelete, mdiDotsVertical, mdiPlaylistEdit, mdiArrowUp, mdiArrowDown } from "@mdi/js";
 import { haStyle } from "../shared/styles";
 
-import { hasTemplate, fireEvent , slugify , cardStyle } from "../utils";
+import { hasTemplate, fireEvent, slugify, cardStyle } from "../utils";
 import type { FormCardField } from "../cards/form-card-config";
 import setupCustomlocalize from "../localize";
 import { GENERIC_LABELS } from "../utils/form/generic-fields";
@@ -88,7 +88,7 @@ export class FormCardEditorFieldRow extends LitElement {
               name: "value",
               selector: { text: {} },
             },
-          ]
+          ],
         },
         {
           name: "entity",
@@ -106,7 +106,7 @@ export class FormCardEditorFieldRow extends LitElement {
               name: "required",
               selector: { boolean: {} },
             },
-          ]
+          ],
         },
       ] as const
   );
@@ -161,82 +161,48 @@ export class FormCardEditorFieldRow extends LitElement {
             @click=${preventDefault}
             fixed
           >
-            <ha-icon-button
-              slot="trigger"
-              .label=${localize("ui.common.menu")}
-              .path=${mdiDotsVertical}
-            >
+            <ha-icon-button slot="trigger" .label=${localize("ui.common.menu")} .path=${mdiDotsVertical}>
             </ha-icon-button>
-            <ha-list-item
-              graphic="icon"
-              .disabled=${this.disabled || this.first}
-            >
+            <ha-list-item graphic="icon" .disabled=${this.disabled || this.first}>
               ${localize("ui.panel.config.automation.editor.move_up")}
               <ha-svg-icon slot="graphic" .path=${mdiArrowUp}></ha-svg-icon
             ></ha-list-item>
 
-            <ha-list-item
-              graphic="icon"
-              .disabled=${this.disabled || this.last}
-            >
-              ${localize(
-                "ui.panel.config.automation.editor.move_down"
-              )}
+            <ha-list-item graphic="icon" .disabled=${this.disabled || this.last}>
+              ${localize("ui.panel.config.automation.editor.move_down")}
               <ha-svg-icon slot="graphic" .path=${mdiArrowDown}></ha-svg-icon>
             </ha-list-item>
 
             <ha-list-item graphic="icon" .disabled=${!this._uiModeAvailable}>
-              ${localize(
-                `ui.panel.config.automation.editor.edit_${!this._yamlMode ? "yaml" : "ui"}`
-              )}
-              <ha-svg-icon
-                slot="graphic"
-                .path=${mdiPlaylistEdit}
-              ></ha-svg-icon>
+              ${localize(`ui.panel.config.automation.editor.edit_${!this._yamlMode ? "yaml" : "ui"}`)}
+              <ha-svg-icon slot="graphic" .path=${mdiPlaylistEdit}></ha-svg-icon>
             </ha-list-item>
 
             <li divider role="separator"></li>
 
-            <ha-list-item
-              class="warning"
-              graphic="icon"
-              .disabled=${this.disabled}
-            >
+            <ha-list-item class="warning" graphic="icon" .disabled=${this.disabled}>
               ${localize("editor.card.generic.delete")}
-              <ha-svg-icon
-                class="warning"
-                slot="graphic"
-                .path=${mdiDelete}
-              ></ha-svg-icon>
+              <ha-svg-icon class="warning" slot="graphic" .path=${mdiDelete}></ha-svg-icon>
             </ha-list-item>
           </ha-button-menu>
           <div class=${classMap({ "card-content": true })}>
             ${this._warnings
               ? html`<ha-alert
-                      alert-type="warning"
-                      .title=${this.hass.localize(
-                              "ui.errors.config.editor_not_supported"
-                      )}
+                  alert-type="warning"
+                  .title=${this.hass.localize("ui.errors.config.editor_not_supported")}
                 >
-                  ${this._warnings!.length > 0 &&
-                  this._warnings![0] !== undefined
+                  ${this._warnings!.length > 0 && this._warnings![0] !== undefined
                     ? html` <ul>
-                        ${this._warnings!.map(
-                          (warning) => html`<li>${warning}</li>`
-                        )}
+                        ${this._warnings!.map((warning) => html`<li>${warning}</li>`)}
                       </ul>`
                     : ""}
-                  ${this.hass.localize(
-                    "ui.errors.config.edit_in_yaml_supported"
-                  )}
-              </ha-alert>`
+                  ${this.hass.localize("ui.errors.config.edit_in_yaml_supported")}
+                </ha-alert>`
               : ""}
             ${this._yamlMode
               ? html` ${this._yamlError
                     ? html` <ha-alert alert-type="error">
-                        ${this.hass.localize(
-                          `ui.panel.config.script.editor.field.${this._yamlError}`
-                        )}
+                        ${this.hass.localize(`ui.panel.config.script.editor.field.${this._yamlError}`)}
                       </ha-alert>`
                     : nothing}
                   <ha-yaml-editor
@@ -290,13 +256,7 @@ export class FormCardEditorFieldRow extends LitElement {
   }
 
   private _onDelete() {
-    if (
-      confirm(
-        this.hass.localize(
-          "ui.panel.config.script.editor.field_delete_confirm_text"
-        )
-      )
-    ) {
+    if (confirm(this.hass.localize("ui.panel.config.script.editor.field_delete_confirm_text"))) {
       fireEvent(this, "value-changed", { value: null });
     }
   }
@@ -319,7 +279,7 @@ export class FormCardEditorFieldRow extends LitElement {
     }
     this._yamlError = undefined;
 
-    const newValue = {...value};
+    const newValue = { ...value };
 
     fireEvent(this, "value-changed", { value: newValue });
   }
@@ -332,13 +292,11 @@ export class FormCardEditorFieldRow extends LitElement {
     }
     const slugifyName = this.field.name
       ? slugify(this.field.name)
-      : this.hass.localize("ui.panel.config.script.editor.field.field") ||
-        "field";
+      : this.hass.localize("ui.panel.config.script.editor.field.field") || "field";
     const regex = new RegExp(`^${slugifyName}(_\\d)?$`);
     if (regex.test(this.key)) {
       let key = !value.name
-        ? this.hass.localize("ui.panel.config.script.editor.field.field") ||
-          "field"
+        ? this.hass.localize("ui.panel.config.script.editor.field.field") || "field"
         : slugify(value.name);
       if (this.excludeKeys.includes(key as string)) {
         let uniqueKey = key;
@@ -355,7 +313,7 @@ export class FormCardEditorFieldRow extends LitElement {
 
   private _valueChanged(ev: CustomEvent) {
     ev.stopPropagation();
-    const value = (ev.detail.value as FormCardField);
+    const value = ev.detail.value as FormCardField;
     this._maybeSetKey(value);
 
     // Don't allow to set an empty key, or duplicate an existing key.
@@ -375,9 +333,7 @@ export class FormCardEditorFieldRow extends LitElement {
 
     // If we render the default with an incompatible selector, it risks throwing an exception and not rendering.
     // Clear the default when changing the selector type.
-    if (
-      Object.keys(this.field.selector!)[0] !== Object.keys(value.selector)[0]
-    ) {
+    if (Object.keys(this.field.selector!)[0] !== Object.keys(value.selector)[0]) {
       delete value.value;
     }
 
@@ -393,24 +349,19 @@ export class FormCardEditorFieldRow extends LitElement {
     return `${labelPrefix ? `${labelPrefix}: ` : ""}${field.key}`;
   }
 
-  private _computeLabelCallback = (
-    schema: SchemaUnion<ReturnType<typeof this._schema>>
-  ): string => {
+  private _computeLabelCallback = (schema: SchemaUnion<ReturnType<typeof this._schema>>): string => {
     const customLocalize = setupCustomlocalize(this.hass!);
     if (GENERIC_LABELS.includes(schema.name)) {
       return customLocalize(`editor.card.fields.${schema.name}`);
     }
     switch (schema.name) {
       default:
-        return this.hass.localize(
-          `ui.panel.config.script.editor.field.${schema.name}`
-        );
+        return this.hass.localize(`ui.panel.config.script.editor.field.${schema.name}`);
     }
   };
 
   private _computeError = (error: string) =>
-    this.hass.localize(`ui.panel.config.script.editor.field.${error}` as any) ||
-    error;
+    this.hass.localize(`ui.panel.config.script.editor.field.${error}` as any) || error;
 
   static get styles(): CSSResultGroup {
     return [

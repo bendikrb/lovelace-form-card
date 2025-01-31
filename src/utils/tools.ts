@@ -1,7 +1,4 @@
-export async function applyToStrings(
-  obj: any,
-  callback: (value: string) => Promise<string>
-): Promise<any> {
+export async function applyToStrings(obj: any, callback: (value: string) => Promise<string>): Promise<any> {
   const result: any = {};
 
   for (const key in obj) {
@@ -19,8 +16,7 @@ export async function applyToStrings(
 
 // https://gist.github.com/hagemann/382adfc57adbd5af078dc93feef01fe1
 export const slugify = (value: string, delimiter = "_") => {
-  const a =
-    "àáâäæãåāăąçćčđďèéêëēėęěğǵḧîïíīįìıİłḿñńǹňôöòóœøōõőṕŕřßśšşșťțûüùúūǘůűųẃẍÿýžźż·";
+  const a = "àáâäæãåāăąçćčđďèéêëēėęěğǵḧîïíīįìıİłḿñńǹňôöòóœøōõőṕŕřßśšşșťțûüùúūǘůűųẃẍÿýžźż·";
   const b = `aaaaaaaaaacccddeeeeeeeegghiiiiiiiilmnnnnoooooooooprrsssssttuuuuuuuuuwxyyzzz${delimiter}`;
   const p = new RegExp(a.split("").join("|"), "g");
 
@@ -47,15 +43,13 @@ export const slugify = (value: string, delimiter = "_") => {
 };
 
 export async function await_element(el, hard = false) {
-  if (el.localName?.includes("-"))
-    await customElements.whenDefined(el.localName);
+  if (el.localName?.includes("-")) await customElements.whenDefined(el.localName);
   if (el.updateComplete) await el.updateComplete;
   if (hard) {
     if (el.pageRendered) await el.pageRendered;
     if (el._panelState) {
       let rounds = 0;
-      while (el._panelState !== "loaded" && rounds++ < 5)
-        await new Promise((r) => setTimeout(r, 100));
+      while (el._panelState !== "loaded" && rounds++ < 5) await new Promise((r) => setTimeout(r, 100));
     }
   }
 }
@@ -67,19 +61,10 @@ export async function waitRepeat(fn, times, delay) {
   }
 }
 
-export function reorderRecord<T>(
-  record: Record<string, T>,
-  oldIndex: number,
-  newIndex: number
-): Record<string, T> {
+export function reorderRecord<T>(record: Record<string, T>, oldIndex: number, newIndex: number): Record<string, T> {
   const newRecord = structuredClone(record);
   const keys = Object.keys(newRecord);
-  if (
-    oldIndex < 0 ||
-    oldIndex >= keys.length ||
-    newIndex < 0 ||
-    newIndex >= keys.length
-  ) {
+  if (oldIndex < 0 || oldIndex >= keys.length || newIndex < 0 || newIndex >= keys.length) {
     throw new Error("Index out of bounds");
   }
 

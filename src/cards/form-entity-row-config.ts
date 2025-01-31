@@ -8,5 +8,5 @@ export interface FormEntityRowConfig extends EntityConfig {
   description?: string;
   selector?: Selector;
   change_action?: ActionConfig;
-  spread_values_to_data?: boolean;
+  spread_values_to_data: false;
 }

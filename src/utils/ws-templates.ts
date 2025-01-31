@@ -42,13 +42,10 @@ export const subscribeRenderTemplate = (
     report_errors?: boolean;
   }
 ): Promise<UnsubscribeFunc> =>
-  conn.subscribeMessage(
-    (msg: RenderTemplateResult | RenderTemplateError) => onChange(msg),
-    {
-      type: "render_template",
-      ...params,
-    }
-  );
+  conn.subscribeMessage((msg: RenderTemplateResult | RenderTemplateError) => onChange(msg), {
+    type: "render_template",
+    ...params,
+  });
 
 export const subscribePreviewTemplate = (
   hass: HomeAssistant,

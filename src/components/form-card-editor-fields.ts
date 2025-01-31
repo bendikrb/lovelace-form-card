@@ -7,7 +7,7 @@ import { mdiPlus, mdiDrag } from "@mdi/js";
 import type { HomeAssistant } from "home-assistant-types";
 import type { FormCardField } from "../cards/form-card-config";
 import type { FormCardEditorFieldRow } from "./form-card-editor-field-row";
-import { fireEvent , loadHaComponents , nextRender } from "../utils";
+import { fireEvent, loadHaComponents, nextRender } from "../utils";
 import "./form-card-editor-field-row";
 import setupCustomlocalize from "../localize";
 
@@ -31,7 +31,7 @@ export class FormCardEditorFields extends LitElement {
   }
 
   private _getIndex(key: string) {
-    return this.fields?.findIndex(field => field.key === key) ?? -1;
+    return this.fields?.findIndex((field) => field.key === key) ?? -1;
   }
 
   // private _getKey(index: number) {
@@ -95,9 +95,7 @@ export class FormCardEditorFields extends LitElement {
   }
 
   public focusLastField() {
-    const row = this.shadowRoot!.querySelector<FormCardEditorFieldRow>(
-      "form-card-editor-field-row:last-of-type"
-    )!;
+    const row = this.shadowRoot!.querySelector<FormCardEditorFieldRow>("form-card-editor-field-row:last-of-type")!;
     row.updateComplete.then(() => {
       row.expand();
       row.scrollIntoView();
@@ -133,9 +131,7 @@ export class FormCardEditorFields extends LitElement {
                   .index=${idx}
                   .first=${idx === 0}
                   .last=${idx === this.fields.length - 1}
-                  .excludeKeys=${this.fields.filter(
-                          (f) => f !== field)
-                          .map((f) => f.key)}
+                  .excludeKeys=${this.fields.filter((f) => f !== field).map((f) => f.key)}
                   .field=${field}
                   .disabled=${this.disabled}
                   @move-down=${this._moveDown}
@@ -146,9 +142,9 @@ export class FormCardEditorFields extends LitElement {
                   ${this._showReorder && !this.disabled
                     ? html`
                         <div class="handle" slot="icons">
-                            <ha-svg-icon .path=${mdiDrag}></ha-svg-icon>
+                          <ha-svg-icon .path=${mdiDrag}></ha-svg-icon>
                         </div>
-                    `
+                      `
                     : nothing}
                 </form-card-editor-field-row>
               `
@@ -201,9 +197,7 @@ export class FormCardEditorFields extends LitElement {
     if (changedProps.has("fields") && this._focusLastFieldOnChange) {
       this._focusLastFieldOnChange = false;
 
-      const row = this.shadowRoot!.querySelector<FormCardEditorFieldRow>(
-        "form-card-editor-field-row:last-of-type"
-      )!;
+      const row = this.shadowRoot!.querySelector<FormCardEditorFieldRow>("form-card-editor-field-row:last-of-type")!;
       row.updateComplete.then(() => {
         row.expand();
         row.scrollIntoView();
@@ -216,11 +210,7 @@ export class FormCardEditorFields extends LitElement {
     ev.stopPropagation();
     const { index, data } = ev.detail;
     // noinspection UnnecessaryLocalVariableJS
-    const fields = [
-      ...this.fields.slice(0, index),
-      data,
-      ...this.fields.slice(index),
-    ];
+    const fields = [...this.fields.slice(0, index), data, ...this.fields.slice(index)];
     // Add action locally to avoid UI jump
     this.fields = fields;
     await nextRender();

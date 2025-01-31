@@ -2,11 +2,7 @@ import { assign, boolean, object, optional, array, string, any } from "superstru
 import type { ActionConfig } from "home-assistant-types/dist/data/lovelace/config/action";
 import type { LovelaceCardConfig } from "home-assistant-types/dist/data/lovelace/config/card";
 
-import {
-  appearanceSharedConfigStruct,
-  lovelaceCardConfigStruct,
-  entitySharedConfigStruct,
-} from "../shared/config";
+import { appearanceSharedConfigStruct, lovelaceCardConfigStruct, entitySharedConfigStruct } from "../shared/config";
 import { actionConfigStruct } from "../shared/config/struct";
 import type { Layout } from "../utils";
 import { layoutStruct } from "../utils";

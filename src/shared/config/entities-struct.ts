@@ -1,20 +1,10 @@
 import { union, object, string, optional, boolean, enums } from "superstruct";
 
-import {
-  actionConfigStruct,
-  actionConfigStructConfirmation,
-} from "./action-struct";
+import { actionConfigStruct, actionConfigStructConfirmation } from "./action-struct";
 
-export const TIMESTAMP_RENDERING_FORMATS = [
-  "relative",
-  "total",
-  "date",
-  "time",
-  "datetime",
-] as const;
+export const TIMESTAMP_RENDERING_FORMATS = ["relative", "total", "date", "time", "datetime"] as const;
 
-export type TimestampRenderingFormat =
-  (typeof TIMESTAMP_RENDERING_FORMATS)[number];
+export type TimestampRenderingFormat = (typeof TIMESTAMP_RENDERING_FORMATS)[number];
 
 export const entitiesConfigStruct = union([
   object({

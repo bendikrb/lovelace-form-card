@@ -115,11 +115,7 @@ export class FormCardEditor extends LitElement implements LovelaceCardEditor {
     if (GENERIC_LABELS.includes(schema.name)) {
       return customLocalize(`editor.card.fields.${schema.name}`) ?? schema.name;
     }
-    return (
-      this.hass!.localize(
-        `ui.panel.lovelace.editor.card.generic.${schema.name}`
-      ) ?? schema.name
-    );
+    return this.hass!.localize(`ui.panel.lovelace.editor.card.generic.${schema.name}`) ?? schema.name;
   };
 
   protected render() {
@@ -131,9 +127,7 @@ export class FormCardEditor extends LitElement implements LovelaceCardEditor {
 
     return html`
       <div class="header">
-        <h2 id="fields-heading" class="name">
-          ${localize("editor.form.fields_heading.title")}
-        </h2>
+        <h2 id="fields-heading" class="name">${localize("editor.form.fields_heading.title")}</h2>
       </div>
       <form-card-editor-fields
         role="region"
@@ -157,9 +151,7 @@ export class FormCardEditor extends LitElement implements LovelaceCardEditor {
           `
         : nothing}
       <div class="header">
-        <h2 id="form-heading" class="name">
-          ${localize("editor.form.form_heading.title")}
-        </h2>
+        <h2 id="form-heading" class="name">${localize("editor.form.form_heading.title")}</h2>
       </div>
       <ha-form
         aria-labelledby="form-heading"

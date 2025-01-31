@@ -47,7 +47,7 @@ export const loadConfigDashboard = async () => {
   await configRouter?.routerOptions?.routes?.script?.load?.(); // Load ha-script-fields
   await customElements.whenDefined("ha-config-dashboard");
   await customElements.whenDefined("ha-config-script");
-  await customElements.whenDefined("ha-")
+  await customElements.whenDefined("ha-");
 };
 
 export const loadDeveloperToolsTemplate = async () => {

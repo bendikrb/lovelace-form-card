@@ -20,10 +20,7 @@ export interface ActionsSharedConfig {
   double_tap_action?: ActionConfig;
 }
 
-export const computeActionsFormSchema = (
-  name: string,
-  actions?: UiAction[]
-): HaFormSchema[] => [
+export const computeActionsFormSchema = (name: string, actions?: UiAction[]): HaFormSchema[] => [
   {
     name,
     selector: { ui_action: { actions, default_action: "none" } },
