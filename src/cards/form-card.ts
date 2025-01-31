@@ -5,10 +5,7 @@ import { classMap } from "lit/directives/class-map.js";
 import type { HomeAssistant } from "home-assistant-types";
 import type { LovelaceCardEditor } from "home-assistant-types/dist/panels/lovelace/types";
 import type { ActionConfig } from "home-assistant-types/dist/data/lovelace/config/action";
-import type {
-  RenderTemplateError,
-  RenderTemplateResult,
-} from "home-assistant-types/dist/data/ws-templates";
+import type { RenderTemplateError, RenderTemplateResult } from "home-assistant-types/dist/data/ws-templates";
 import type { HaProgressButton } from "home-assistant-types/dist/components/buttons/ha-progress-button";
 
 import {
@@ -18,7 +15,8 @@ import {
   loadConfigDashboard,
   registerCustomCard,
   fireEvent,
-  slugify, loadDeveloperToolsTemplate,
+  slugify,
+  loadDeveloperToolsTemplate,
 } from "../utils";
 
 // import "../ha/components/ha-card";
@@ -49,31 +47,15 @@ export class FormCard extends FormBaseCard {
     Record<string, RenderTemplateResult | RenderTemplateError | undefined>
   > = {};
 
-  private _debugData: HASSDomEvents["form-card-submit-action"] | null = null;
-
-  constructor() {
-    super();
-    this.addEventListener(
-      "form-card-submit-action",
-      (e: Event) => {
-        this._debugData = (e as CustomEvent<HASSDomEvents["form-card-submit-action"]>).detail;
-        this.requestUpdate();
-      }
-    );
-  }
-
   private _getFieldIndex(key: string) {
-    return this._config?.fields?.findIndex(field => field.key === key) ?? -1;
+    return this._config?.fields?.findIndex((field) => field.key === key) ?? -1;
   }
 
   private _getTemplateKey(fieldId: string, path: string): string {
     return `${fieldId}:${path}`;
   }
 
-  private _findTemplatesInObject(
-    obj: any,
-    _parentPath = ""
-  ): [string, string][] {
+  private _findTemplatesInObject(obj: any, _parentPath = ""): [string, string][] {
     const templates: [string, string][] = [];
 
     const traverse = (current: any, path: string[] = []) => {
@@ -100,9 +82,7 @@ export class FormCard extends FormBaseCard {
     return document.createElement(FORM_CARD_EDITOR_NAME) as LovelaceCardEditor;
   }
 
-  public static async getStubConfig(
-    hass: HomeAssistant
-  ): Promise<FormCardConfig> {
+  public static async getStubConfig(hass: HomeAssistant): Promise<FormCardConfig> {
     const entities = Object.keys(hass.states);
     const entity_id = entities[0];
     const field_name = entity_id.substring(0, 15);
@@ -127,9 +107,7 @@ export class FormCard extends FormBaseCard {
     config.fields?.forEach((fieldConfig) => {
       const fieldId = fieldConfig.key;
       const fieldIndex = this._getFieldIndex(fieldId);
-      const oldTemplates = this._findTemplatesInObject(
-        this._config?.fields[fieldIndex] || {}
-      );
+      const oldTemplates = this._findTemplatesInObject(this._config?.fields[fieldIndex] || {});
       const newTemplates = this._findTemplatesInObject(fieldConfig);
 
       // Disconnect templates that are no longer present or have changed
@@ -166,13 +144,7 @@ export class FormCard extends FormBaseCard {
       const templates = this._findTemplatesInObject(fieldConfig);
       templates.forEach(([path, template]) => {
         const templateKey = this._getTemplateKey(fieldConfig.key, path);
-        this._tryConnectTemplate(
-          fieldConfig.key,
-          path,
-          template,
-          templateKey,
-          fieldConfig
-        );
+        this._tryConnectTemplate(fieldConfig.key, path, template, templateKey, fieldConfig);
       });
     });
   }
@@ -184,11 +156,7 @@ export class FormCard extends FormBaseCard {
     templateKey: string,
     fieldConfig: FormCardField
   ): Promise<void> {
-    if (
-      this._unsubRenderTemplates.get(templateKey) !== undefined ||
-      !this.hass ||
-      !this._config
-    ) {
+    if (this._unsubRenderTemplates.get(templateKey) !== undefined || !this.hass || !this._config) {
       return;
     }
 
@@ -244,9 +212,7 @@ export class FormCard extends FormBaseCard {
     const processValue = (value: any): any => {
       if (typeof value === "string" && value.includes("{")) {
         // Find the template result for this value
-        const path = this._findTemplatesInObject(obj).find(
-          ([_, template]) => template === value
-        )?.[0];
+        const path = this._findTemplatesInObject(obj).find(([_, template]) => template === value)?.[0];
         if (path) {
           const res = this._templateResults[fieldId]?.[path] ?? {};
           return "result" in res ? res.result : value;
@@ -258,10 +224,7 @@ export class FormCard extends FormBaseCard {
         if (Array.isArray(value)) {
           return value.map((item) => processValue(item));
         }
-        return Object.entries(value).reduce(
-          (acc, [k, v]) => ({ ...acc, [k]: processValue(v) }),
-          {}
-        );
+        return Object.entries(value).reduce((acc, [k, v]) => ({ ...acc, [k]: processValue(v) }), {});
       }
 
       return value;
@@ -284,9 +247,7 @@ export class FormCard extends FormBaseCard {
   }
 
   protected _getValue(key: string) {
-    return this.isTemplate(key)
-      ? this._templateResults[key]?.result
-      : this._config?.[key];
+    return this.isTemplate(key) ? this._templateResults[key]?.result : this._config?.[key];
   }
 
   protected updated(changedProps: PropertyValues): void {
@@ -317,10 +278,7 @@ export class FormCard extends FormBaseCard {
 
   private _getProcessedFieldValue(key: string, field: any): any {
     // First check if we have a user-edited value
-    if (
-      this._value?.data?.[key] !== undefined &&
-      this._value?.data?.[key] !== this._initialValue?.data?.[key]
-    ) {
+    if (this._value?.data?.[key] !== undefined && this._value?.data?.[key] !== this._initialValue?.data?.[key]) {
       return this._value?.data?.[key];
     }
 
@@ -354,75 +312,57 @@ export class FormCard extends FormBaseCard {
     const hasPendingChanges = this._hasPendingChanges();
     const { title } = this._config;
 
-    const formFields = this._config.fields.map(
-      (fieldConfig) => {
-        // Process the entire field config to resolve any templates
-        const processedConfig = this._processTemplatedObject(
-          fieldConfig.key,
-          fieldConfig
-        );
-        const fieldValue = this._getProcessedFieldValue(fieldConfig.key, fieldConfig);
+    const formFields = this._config.fields.map((fieldConfig) => {
+      // Process the entire field config to resolve any templates
+      const processedConfig = this._processTemplatedObject(fieldConfig.key, fieldConfig);
+      const fieldValue = this._getProcessedFieldValue(fieldConfig.key, fieldConfig);
 
-        const entity_id = processedConfig.entity;
-        const base = this.hass.states[entity_id];
-        const entity = (base && JSON.parse(JSON.stringify(base))) || {
-          entity_id: "binary_sensor.",
-          attributes: { icon: "no:icon", friendly_name: "" },
-          state: "off",
-        };
+      const entity_id = processedConfig.entity;
+      const base = this.hass.states[entity_id];
+      const entity = (base && JSON.parse(JSON.stringify(base))) || {
+        entity_id: "binary_sensor.",
+        attributes: { icon: "no:icon", friendly_name: "" },
+        state: "off",
+      };
 
-        const name =
-          processedConfig.name ??
-          entity?.attributes?.friendly_name ??
-          entity?.entity_id;
+      const name = processedConfig.name ?? entity?.attributes?.friendly_name ?? entity?.entity_id;
 
-        // const state = processedConfig.state ?? base?.state;
-        return {
-          key: fieldConfig.key,
-          name,
-          description: processedConfig.description ?? undefined,
-          required: processedConfig.required ?? undefined,
-          selector: processedConfig.selector ?? undefined,
-          entity: entity_id,
-          value: fieldValue,
-          placeholder: processedConfig.placeholder ?? undefined,
-          disabled: processedConfig.disabled ?? false,
-        };
-      }
-    );
+      return {
+        key: fieldConfig.key,
+        name,
+        description: processedConfig.description ?? undefined,
+        required: processedConfig.required ?? undefined,
+        selector: processedConfig.selector ?? undefined,
+        entity: entity_id,
+        value: fieldValue,
+        placeholder: processedConfig.placeholder ?? undefined,
+        disabled: processedConfig.disabled ?? false,
+      };
+    });
 
     const fill_container = false;
     const disabled = false;
-    const save_label =
-      this._getValue("save_label") ?? this.hass.localize("ui.common.save");
+    const save_label = this._getValue("save_label") ?? this.hass.localize("ui.common.save");
 
     return html`
       <ha-card
         .header=${title}
         class=${classMap({
-            "fill-container": fill_container,
-            "no-header": !title,
+          "fill-container": fill_container,
+          "no-header": !title,
         })}
       >
         <div class="card-content">
           ${formFields.map((dataField) => this._renderField(dataField))}
           ${this._error ? html`<div class="error">${this._error}</div>` : nothing}
           <div class="card-actions">
-            <ha-button
-              @click=${this._resetChanges}
-              .disabled=${!hasPendingChanges}
-            >
+            <ha-button @click=${this._resetChanges} .disabled=${!hasPendingChanges}>
               ${this.hass.localize("ui.common.undo")}
             </ha-button>
-            <ha-progress-button
-              @click=${this._handleSave}
-              .disabled=${disabled}
-            >
-              ${save_label}
-            </ha-progress-button>
+            <ha-progress-button @click=${this._handleSave} .disabled=${disabled}> ${save_label} </ha-progress-button>
           </div>
         </div>
-        ${this.editMode ? this._renderDebug() : nothing}
+        ${this.preview ? this._renderDebug() : nothing}
       </ha-card>
     `;
   }
@@ -431,8 +371,8 @@ export class FormCard extends FormBaseCard {
     const selector = dataField?.selector ?? { text: undefined };
     const layout = this._config?.layout ?? "default";
     const useSettingsRow = layout === "horizontal" || layout === "vertical";
-    const selectorLabel = layout === "vertical" ? undefined : dataField.name ?? undefined;
-    const selectorHelper = layout === "vertical" ? undefined : dataField.description ?? undefined;
+    const selectorLabel = layout === "vertical" ? undefined : (dataField.name ?? undefined);
+    const selectorHelper = layout === "vertical" ? undefined : (dataField.description ?? undefined);
 
     // @ts-ignore
     const selectorElement = html`
@@ -455,22 +395,11 @@ export class FormCard extends FormBaseCard {
     }
 
     return html`
-      <ha-settings-row
-        .narrow=${this.narrow}
-        .slim=${true}
-        class=${`layout-${layout}`}
-        wrap-heading
-      >
+      <ha-settings-row .narrow=${this.narrow} .slim=${true} class=${`layout-${layout}`} wrap-heading>
         ${layout === "vertical"
           ? [
-              dataField.name
-                ? html`<span slot="heading">${dataField.name}</span>`
-                : "",
-              dataField.description
-                ? html`<span slot="description"
-                    >${dataField?.description}</span
-                  >`
-                : "",
+              dataField.name ? html`<span slot="heading">${dataField.name}</span>` : "",
+              dataField.description ? html`<span slot="description">${dataField?.description}</span>` : "",
             ]
           : ""}
         ${selectorElement}
@@ -485,11 +414,7 @@ export class FormCard extends FormBaseCard {
     return html`
       <ha-expansion-panel class="debug">
         <span slot="header">Debug</span>
-        <ha-yaml-editor
-          read-only
-          auto-update
-          .value=${this._debugData}
-        ></ha-yaml-editor>
+        <ha-yaml-editor read-only auto-update .value=${this._debugData}></ha-yaml-editor>
       </ha-expansion-panel>
     `;
   }
@@ -526,10 +451,7 @@ export class FormCard extends FormBaseCard {
   }
 
   public async performAction(actionConfig: ActionConfig, value: any) {
-    if (
-      actionConfig.action !== "call-service" &&
-      actionConfig.action !== "perform-action"
-    ) {
+    if (actionConfig.action !== "call-service" && actionConfig.action !== "perform-action") {
       return;
     }
     const variables = {
@@ -537,19 +459,16 @@ export class FormCard extends FormBaseCard {
     };
 
     // noinspection JSDeprecatedSymbols
-    const processedData: Promise<any>[] = Object.entries(
-      actionConfig.data ?? actionConfig.service_data ?? {}
-    ).map(async ([key, v]): Promise<(string | any)[]> => {
-      if (typeof v === "string" && v.includes("{")) {
-        return [key, (await this._renderTemplate(v, variables)).result];
+    const processedData: Promise<any>[] = Object.entries(actionConfig.data ?? actionConfig.service_data ?? {}).map(
+      async ([key, v]): Promise<(string | any)[]> => {
+        if (typeof v === "string" && v.includes("{")) {
+          return [key, (await this._renderTemplate(v, variables)).result];
+        }
+        return [key, v];
       }
-      return [key, v];
-    });
-
-    const serviceData = (await Promise.all(processedData)).reduce(
-      (acc, [key, v]) => ({ ...acc, [key]: v }),
-      {}
     );
+
+    const serviceData = (await Promise.all(processedData)).reduce((acc, [key, v]) => ({ ...acc, [key]: v }), {});
 
     const updatedActionConfig = {
       ...actionConfig,
@@ -595,10 +514,7 @@ export class FormCard extends FormBaseCard {
           --paper-time-input-justify-content: flex-end;
           --settings-row-content-width: 100%;
           --settings-row-prefix-display: contents;
-          border-top: var(
-            --service-control-items-border-top,
-            1px solid var(--divider-color)
-          );
+          border-top: var(--service-control-items-border-top, 1px solid var(--divider-color));
         }
         .description {
           justify-content: space-between;

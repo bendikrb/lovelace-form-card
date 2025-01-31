@@ -1,10 +1,7 @@
 import { LitElement } from "lit";
 import { property, state } from "lit/decorators.js";
 import type { HomeAssistant, ServiceCallRequest } from "home-assistant-types";
-import type {
-  HassServiceTarget,
-  UnsubscribeFunc,
-} from "home-assistant-js-websocket";
+import type { HassServiceTarget, UnsubscribeFunc } from "home-assistant-js-websocket";
 
 import type { RenderTemplateResult } from "home-assistant-types/dist/data/ws-templates";
 import type { CallServiceActionConfig } from "home-assistant-types/dist/data/lovelace/config/action";
@@ -15,7 +12,7 @@ import type { FormEntityRowConfig } from "../cards/form-entity-row-config";
 export class FormBaseCard extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property({ attribute: false }) public editMode? = false;
+  @property({ type: Boolean }) public preview = false;
 
   @property({ attribute: false }) public value?: {
     action: string;
@@ -31,10 +28,17 @@ export class FormBaseCard extends LitElement {
 
   @state() protected _config?: FormCardConfig | FormEntityRowConfig;
 
-  @state() protected _unsubRenderTemplates = new Map<
-    string,
-    Promise<UnsubscribeFunc>
-  >();
+  @state() protected _unsubRenderTemplates = new Map<string, Promise<UnsubscribeFunc>>();
+
+  protected _debugData: HASSDomEvents["form-card-submit-action"] | null = null;
+
+  constructor() {
+    super();
+    this.addEventListener("form-card-submit-action", (e: Event) => {
+      this._debugData = (e as CustomEvent<HASSDomEvents["form-card-submit-action"]>).detail;
+      this.requestUpdate();
+    });
+  }
 
   protected _updateInitialValue(): void {
     this._initialValue = structuredClone(this._value);
@@ -44,10 +48,7 @@ export class FormBaseCard extends LitElement {
     return JSON.stringify(this._value) !== JSON.stringify(this._initialValue);
   }
 
-  protected async _renderTemplate(
-    template: string,
-    variables: Record<string, any>
-  ): Promise<RenderTemplateResult> {
+  protected async _renderTemplate(template: string, variables: Record<string, any>): Promise<RenderTemplateResult> {
     return new Promise<RenderTemplateResult>((resolve, reject) => {
       const unsubscribePromise = subscribeRenderTemplate(
         this.hass.connection,
@@ -89,10 +90,11 @@ export class FormBaseCard extends LitElement {
     }
   }
 
-  protected async _performAction(
-    actionConfig: CallServiceActionConfig,
-    value: Record<string, any>
-  ) {
+  protected async _performAction(actionConfig: CallServiceActionConfig, value: Record<string, any>) {
+    if (Object.keys(value).length === 1 && Object.prototype.hasOwnProperty.call(value, "value")) {
+      value = value.value ?? "";
+    }
+
     // noinspection JSDeprecatedSymbols
     const perform_action = actionConfig.perform_action ?? actionConfig.service;
     // noinspection JSDeprecatedSymbols
@@ -114,9 +116,10 @@ export class FormBaseCard extends LitElement {
       }
     );
 
-    const { entity_id, ...serviceData } = (
-      await Promise.all(processedData)
-    ).reduce((acc, [key, v]) => ({ ...acc, [key]: v }), {});
+    const { entity_id, ...serviceData } = (await Promise.all(processedData)).reduce(
+      (acc, [key, v]) => ({ ...acc, [key]: v }),
+      {}
+    );
 
     if (this._config?.spread_values_to_data) {
       Object.entries(value).forEach(([key, v]) => {
@@ -124,16 +127,20 @@ export class FormBaseCard extends LitElement {
           serviceData[key] = v;
         }
       });
+    } else if (!Object.prototype.hasOwnProperty.call(serviceData, "value")) {
+      serviceData.value = value;
     }
 
     let serviceTarget: HassServiceTarget | undefined;
-    if (actionConfig.target) {
+    if (actionConfig.target && Object.keys(actionConfig.target).length > 0) {
       serviceTarget = actionConfig.target;
     } else if (entity_id) {
       serviceTarget = { entity_id };
+    } else if (this._config?.entity) {
+      serviceTarget = { entity_id: this._config.entity };
     }
 
-    if (this.editMode) {
+    if (this.preview) {
       fireEvent(this, "form-card-submit-action", {
         domain,
         service,

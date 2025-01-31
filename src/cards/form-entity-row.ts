@@ -11,12 +11,11 @@ import type { RenderTemplateResult } from "home-assistant-types/dist/data/ws-tem
 
 import type { LovelaceRowEditor } from "home-assistant-types/dist/panels/lovelace/types";
 import { FormBaseCard } from "../shared/form-base-card";
-import { fireEvent , subscribeRenderTemplate , applyToStrings } from "../utils";
+import { fireEvent, subscribeRenderTemplate, applyToStrings } from "../utils";
 
 import { FORM_ENTITY_ROW_EDITOR_NAME, FORM_ENTITY_ROW_NAME } from "../const";
 
 import type { FormEntityRowConfig } from "./form-entity-row-config";
-
 
 const OPTIONS = ["icon", "name", "value", "entity"] as const;
 
@@ -28,9 +27,7 @@ export class FormEntityRow extends FormBaseCard {
 
   public static async getConfigElement(): Promise<LovelaceRowEditor> {
     await import("./form-entity-row-editor");
-    return document.createElement(
-      FORM_ENTITY_ROW_EDITOR_NAME
-    ) as LovelaceRowEditor;
+    return document.createElement(FORM_ENTITY_ROW_EDITOR_NAME) as LovelaceRowEditor;
   }
 
   private _schema = memoizeOne(
@@ -45,13 +42,9 @@ export class FormEntityRow extends FormBaseCard {
       ] as const
   );
 
-  @state() private _templateResults: Partial<
-    Record<string, RenderTemplateResult | undefined>
-  > = {};
+  @state() private _templateResults: Partial<Record<string, RenderTemplateResult | undefined>> = {};
 
-  public static async getStubConfig(
-    hass: HomeAssistant
-  ): Promise<FormEntityRowConfig> {
+  public static async getStubConfig(hass: HomeAssistant): Promise<FormEntityRowConfig> {
     const entities = Object.keys(hass.states);
     const entity_id = entities[0];
     return {
@@ -63,6 +56,7 @@ export class FormEntityRow extends FormBaseCard {
       selector: {
         text: {},
       },
+      spread_values_to_data: false,
       change_action: {
         action: "none",
       },
@@ -71,10 +65,7 @@ export class FormEntityRow extends FormBaseCard {
 
   setConfig(config: FormEntityRowConfig) {
     OPTIONS.forEach((key) => {
-      if (
-        this._config?.[key] !== config[key] ||
-        this._config?.entity !== config.entity
-      ) {
+      if (this._config?.[key] !== config[key] || this._config?.entity !== config.entity) {
         void this._tryDisconnectKey(key);
       }
     });
@@ -98,9 +89,7 @@ export class FormEntityRow extends FormBaseCard {
   }
 
   protected _getValue(key: string) {
-    return this.isTemplate(key)
-      ? this._templateResults[key]?.result
-      : this._config?.[key];
+    return this.isTemplate(key) ? this._templateResults[key]?.result : this._config?.[key];
   }
 
   protected updated(changedProps: PropertyValues): void {
@@ -117,10 +106,7 @@ export class FormEntityRow extends FormBaseCard {
       await this._tryConnectKey(key);
     }
 
-    const selector = await applyToStrings(
-      this._config?.selector,
-      this._renderSelectorTemplate.bind(this)
-    );
+    const selector = await applyToStrings(this._config?.selector, this._renderSelectorTemplate.bind(this));
     if (selector && this._config) {
       this._config.selector = selector;
     }
@@ -137,12 +123,7 @@ export class FormEntityRow extends FormBaseCard {
   }
 
   private async _tryConnectKey(key: string): Promise<void> {
-    if (
-      this._unsubRenderTemplates.get(key) !== undefined ||
-      !this.hass ||
-      !this._config ||
-      !this.isTemplate(key)
-    ) {
+    if (this._unsubRenderTemplates.get(key) !== undefined || !this.hass || !this._config || !this.isTemplate(key)) {
       return;
     }
 
@@ -209,17 +190,11 @@ export class FormEntityRow extends FormBaseCard {
       state: "off",
     };
 
-    const icon =
-      this._config.icon !== undefined
-        ? this._config.icon || "no:icon"
-        : undefined;
+    const icon = this._config.icon !== undefined ? this._config.icon || "no:icon" : undefined;
     const color = this._getValue("color");
 
     const name =
-      this._getValue("name") ??
-      this._getValue("label") ??
-      entity?.attributes?.friendly_name ??
-      entity?.entity_id;
+      this._getValue("name") ?? this._getValue("label") ?? entity?.attributes?.friendly_name ?? entity?.entity_id;
 
     const state_value = this._getValue("state") ?? base?.state;
     const value = this._getValue("value") ?? state_value;
@@ -229,9 +204,7 @@ export class FormEntityRow extends FormBaseCard {
     const data = {
       value,
     };
-    const selectorName = this._config.selector
-      ? `selector-${Object.keys(this._config.selector)[0]}`
-      : "selector-text";
+    const selectorName = this._config.selector ? `selector-${Object.keys(this._config.selector)[0]}` : "selector-text";
     const wrapperClasses = {
       [selectorName]: true,
     };
@@ -258,24 +231,30 @@ export class FormEntityRow extends FormBaseCard {
         ${show_state ? html` <div class="state">${state_value}</div>` : nothing}
       </div>
       <div id="staging">
-        <hui-generic-entity-row .hass=${this.hass} .config=${this._config}>
-        </hui-generic-entity-row>
+        <hui-generic-entity-row .hass=${this.hass} .config=${this._config}> </hui-generic-entity-row>
       </div>
+      ${this.preview ? this._renderDebug() : nothing}
     `;
   }
 
-  protected _computeLabel(s) {
+  private _renderDebug() {
+    if (!this._debugData) {
+      return nothing;
+    }
+    return html`
+      <ha-expansion-panel class="debug">
+        <span slot="header">Debug</span>
+        <ha-yaml-editor read-only auto-update .value=${this._debugData}></ha-yaml-editor>
+      </ha-expansion-panel>
+    `;
+  }
+
+  protected _computeLabel(s: any) {
     return s.label ?? s.name ?? undefined;
   }
 
-  public async performAction(
-    actionConfig: ActionConfig,
-    value: Record<string, any>
-  ) {
-    if (
-      actionConfig.action !== "call-service" &&
-      actionConfig.action !== "perform-action"
-    ) {
+  public async performAction(actionConfig: ActionConfig, value: Record<string, any>) {
+    if (actionConfig.action !== "call-service" && actionConfig.action !== "perform-action") {
       return;
     }
     await this._performAction(actionConfig, value);
@@ -286,7 +265,7 @@ export class FormEntityRow extends FormBaseCard {
     const value = { ...ev.detail.value };
     if (this._config?.change_action) {
       const data = {
-        json_value: value,
+        ...value,
       };
       void this.performAction(this._config.change_action, data);
     }
