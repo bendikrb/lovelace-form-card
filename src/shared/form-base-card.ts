@@ -9,7 +9,11 @@ import { fireEvent, subscribeRenderTemplate } from "../utils";
 import type { FormCardConfig } from "../cards/form-card-config";
 import type { FormEntityRowConfig } from "../cards/form-entity-row-config";
 
+export type FormType = "base" | "card" | "entity-row";
+
 export class FormBaseCard extends LitElement {
+  protected readonly _formType: FormType = "base";
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ type: Boolean }) public preview = false;
@@ -94,11 +98,13 @@ export class FormBaseCard extends LitElement {
     if (Object.keys(value).length === 1 && Object.prototype.hasOwnProperty.call(value, "value")) {
       value = value.value ?? "";
     }
+    const is_entity_row = this._formType === "entity-row";
 
     // noinspection JSDeprecatedSymbols
     const perform_action = actionConfig.perform_action ?? actionConfig.service;
     // noinspection JSDeprecatedSymbols
     const actionData = actionConfig.data ?? actionConfig.service_data ?? {};
+    const actionTarget = actionConfig.target ?? {};
 
     const [domain, service] = perform_action.split(".");
     const variables = {
@@ -115,11 +121,23 @@ export class FormBaseCard extends LitElement {
         return [key, v];
       }
     );
+    const processedTarget = Object.entries(actionTarget).map(
+      async ([key, v]): Promise<(string | any)[]> => {
+        if (typeof v === "string" && v.includes("{")) {
+          return [key, (await this._renderTemplate(v, variables)).result];
+        }
+        return [key, v];
+      }
+    );
 
     const { entity_id, ...serviceData } = (await Promise.all(processedData)).reduce(
       (acc, [key, v]) => ({ ...acc, [key]: v }),
       {}
     );
+    const serviceTarget: HassServiceTarget = (await Promise.all(processedTarget)).reduce(
+      (acc, [key, v]) => ({ ...acc, [key]: v }),
+      {}
+    )
 
     if (this._config?.spread_values_to_data) {
       Object.entries(value).forEach(([key, v]) => {
@@ -127,18 +145,19 @@ export class FormBaseCard extends LitElement {
           serviceData[key] = v;
         }
       });
-    } else if (!Object.prototype.hasOwnProperty.call(serviceData, "value")) {
+    }
+    if (is_entity_row && !Object.prototype.hasOwnProperty.call(serviceData, "value") && this._config?.spread_values_to_data) {
       serviceData.value = value;
     }
 
-    let serviceTarget: HassServiceTarget | undefined;
-    if (actionConfig.target && Object.keys(actionConfig.target).length > 0) {
-      serviceTarget = actionConfig.target;
-    } else if (entity_id) {
-      serviceTarget = { entity_id };
-    } else if (this._config?.entity) {
-      serviceTarget = { entity_id: this._config.entity };
-    }
+    // let serviceTarget: HassServiceTarget | undefined;
+    // if (actionConfig.target && Object.keys(actionConfig.target).length > 0) {
+    //   serviceTarget = actionConfig.target;
+    // } else if (entity_id) {
+    //   serviceTarget = { entity_id };
+    // } else if (this._config?.entity) {
+    //   serviceTarget = { entity_id: this._config.entity };
+    // }
 
     if (this.preview) {
       fireEvent(this, "form-card-submit-action", {

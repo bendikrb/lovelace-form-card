@@ -2,19 +2,17 @@ import { assign, boolean, object, optional, array, string, any } from "superstru
 import type { ActionConfig } from "home-assistant-types/dist/data/lovelace/config/action";
 import type { LovelaceCardConfig } from "home-assistant-types/dist/data/lovelace/config/card";
 
-import { appearanceSharedConfigStruct, lovelaceCardConfigStruct, entitySharedConfigStruct } from "../shared/config";
+import { lovelaceCardConfigStruct, entitySharedConfigStruct } from "../shared/config";
 import { actionConfigStruct } from "../shared/config/struct";
-import type { Layout } from "../utils";
-import { layoutStruct } from "../utils";
 
 export interface FormCardConfig extends LovelaceCardConfig {
   type: "custom:form-card";
   title?: string;
-  layout: Layout;
   fields: FormCardField[];
   save_label?: string;
   save_action?: ActionConfig;
   spread_values_to_data?: boolean;
+  reset_on_submit?: boolean;
 }
 
 export type FormCardFields = Record<string, FormCardField>;
@@ -45,13 +43,13 @@ export const fieldConfigStruct = object({
 
 export const formCardConfigStruct = assign(
   lovelaceCardConfigStruct,
-  assign(entitySharedConfigStruct, appearanceSharedConfigStruct),
+  entitySharedConfigStruct,
   object({
     title: optional(string()),
-    layout: optional(layoutStruct),
     fields: array(fieldConfigStruct),
     save_label: optional(string()),
     save_action: optional(actionConfigStruct),
     spread_values_to_data: optional(boolean()),
+    reset_on_submit: optional(boolean()),
   })
 );

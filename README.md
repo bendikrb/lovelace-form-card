@@ -105,6 +105,7 @@ save_action:
 | `type`                  | `string`  | N/A     | ✅         | Must be set to `custom:form-card`.                                                   |
 | `title`                 | `string`  | N/A     | ❌         | Title of the form card.                                                              |
 | `fields`                | `array`   | N/A     | ✅         | Array defining form fields (see [`field options`](#field-options) below).            |
+| `reset_on_submit`       | `boolean` | `false` | ❌         | If `true`, resets the form on submit.                                                |
 | `spread_values_to_data` | `boolean` | `false` | ❌         | If `true`, spreads form values into action payload directly.                         |
 | `save_action`           | `action`  | N/A     | ❌         | Defines what [action][home-assistant-action-docs] occurs when the form is submitted. |
 
@@ -149,7 +150,7 @@ The templates have access to a few special variables. Those are:
   - `config` - an object containing the card configuration
   - `user` - the username of the currently logged in user
 
-For entity rows with `entity` specified, the following variables are also available:
+For entity rows and fields with `entity` specified, the following variables are also available:
   - `entity` - the entity ID of the field
 
 
@@ -169,12 +170,13 @@ title: Dynamic Input
 fields:
   - key: temperature
     name: Desired Temperature
+    entity: climate.living_room
     selector:
       number:
         min: 10
         max: 30
         step: 1
-    value: "{{ state_attr('climate.living_room', 'temperature') }}"
+    value: "{{ state_attr(entity, 'temperature') }}"
 save_action:
   action: call-service
   service: climate.set_temperature
@@ -205,6 +207,11 @@ entities:
       service: input_text.set_value
       data:
         value: "{{ value }}"
+# or (equivalent):
+    spread_values_to_data: true
+    change_action:
+      action: call-service
+      service: input_text.set_value
 ```
 </details>
 

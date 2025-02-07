@@ -61,7 +61,13 @@ const computeSchema = memoizeOne((t: LocalizeFunc, entity: string): HaFormSchema
         suffix: t("editor.form.actions_heading.description"),
       },
       icon: "mdi:playlist-edit",
-      schema: [...computeActionsFormSchema("change_action", actions)],
+      schema: [
+        {
+          name: "spread_values_to_data",
+          selector: { boolean: {} },
+        },
+        ...computeActionsFormSchema("change_action", actions),
+      ],
     },
   ] as const;
 });
@@ -78,7 +84,6 @@ export class FormEntityRowEditor extends LitElement implements LovelaceRowEditor
   }
 
   public setConfig(config: EntitiesCardEntityConfig): void {
-    // assert(config, entitiesConfigStruct);
     this._config = config;
   }
 

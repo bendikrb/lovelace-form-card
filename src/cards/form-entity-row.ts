@@ -21,6 +21,8 @@ const OPTIONS = ["icon", "name", "value", "entity"] as const;
 
 @customElement(FORM_ENTITY_ROW_NAME)
 export class FormEntityRow extends FormBaseCard {
+  protected readonly _formType = "entity-row";
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @state() protected _config?: FormEntityRowConfig;

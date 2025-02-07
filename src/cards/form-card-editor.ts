@@ -23,23 +23,11 @@ import { GENERIC_LABELS } from "../utils/form/generic-fields";
 import "../components/form-card-editor-fields";
 
 const actions: UiAction[] = ["none", "perform-action"];
-const layoutOptions = ["default", "horizontal", "vertical"];
 const computeSchema = memoizeOne((t: LocalizeFunc): HaFormSchema[] => [
   {
     name: "title",
     selector: {
       text: {},
-    },
-  },
-  {
-    name: "layout",
-    selector: {
-      select: {
-        options: layoutOptions.map((v) => ({
-          value: v,
-          label: t(`editor.form.layout_picker.values.${v}`),
-        })),
-      },
     },
   },
   {
@@ -56,6 +44,10 @@ const computeSchema = memoizeOne((t: LocalizeFunc): HaFormSchema[] => [
       },
       {
         name: "spread_values_to_data",
+        selector: { boolean: {} },
+      },
+      {
+        name: "reset_on_submit",
         selector: { boolean: {} },
       },
       ...computeActionsFormSchema("save_action", actions),

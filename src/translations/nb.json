@@ -48,6 +48,7 @@
         "disabled": "Deaktivert",
         "save_label": "Lagre-knapp etikett",
         "spread_values_to_data": "Spre skjemaverdier",
+        "reset_on_submit": "Nullstill skjema etter lagring",
         "save_action": "Lagre handling",
         "change_action": "Endre handling",
         "edit_ui": "Redigér i visuell editor",

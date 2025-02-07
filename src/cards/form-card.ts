@@ -3,7 +3,7 @@ import { css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
 import type { HomeAssistant } from "home-assistant-types";
-import type { LovelaceCardEditor } from "home-assistant-types/dist/panels/lovelace/types";
+import type { LovelaceCard, LovelaceCardEditor } from "home-assistant-types/dist/panels/lovelace/types";
 import type { ActionConfig } from "home-assistant-types/dist/data/lovelace/config/action";
 import type { RenderTemplateError, RenderTemplateResult } from "home-assistant-types/dist/data/ws-templates";
 import type { HaProgressButton } from "home-assistant-types/dist/components/buttons/ha-progress-button";
@@ -19,9 +19,6 @@ import {
   loadDeveloperToolsTemplate,
 } from "../utils";
 
-// import "../ha/components/ha-card";
-// import "../ha/components/ha-button";
-
 import { FORM_CARD_EDITOR_NAME, FORM_CARD_NAME } from "../const";
 import type { FormCardConfig, FormCardField } from "./form-card-config";
 import { FormBaseCard } from "../shared/form-base-card";
@@ -33,7 +30,9 @@ registerCustomCard({
 });
 
 @customElement(FORM_CARD_NAME)
-export class FormCard extends FormBaseCard {
+export class FormCard extends FormBaseCard implements LovelaceCard {
+  protected readonly _formType = "card";
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ type: Boolean, reflect: true }) public narrow = false;
@@ -78,7 +77,6 @@ export class FormCard extends FormBaseCard {
     await import("./form-card-editor");
     await loadHaComponents();
     await loadDeveloperToolsTemplate();
-    // await setupFormCardEditorFields();
     return document.createElement(FORM_CARD_EDITOR_NAME) as LovelaceCardEditor;
   }
 
@@ -89,7 +87,6 @@ export class FormCard extends FormBaseCard {
     const field_key = slugify(field_name);
     return {
       type: `custom:${FORM_CARD_NAME}`,
-      layout: "default",
       fields: [
         {
           name: field_name,
@@ -100,6 +97,10 @@ export class FormCard extends FormBaseCard {
         },
       ],
     };
+  }
+
+  public getCardSize() {
+    return 1;
   }
 
   setConfig(config: FormCardConfig) {
@@ -265,17 +266,6 @@ export class FormCard extends FormBaseCard {
     void this._tryConnect();
   }
 
-  // noinspection JSUnusedLocalSymbols
-  private async _renderTemplateWithResult(template: string): Promise<string> {
-    const variables = {
-      config: this._config,
-      user: this.hass.user!.name,
-      entity: this._config?.entity,
-    };
-    const val = await this._renderTemplate(template, variables);
-    return val.result;
-  }
-
   private _getProcessedFieldValue(key: string, field: any): any {
     // First check if we have a user-edited value
     if (this._value?.data?.[key] !== undefined && this._value?.data?.[key] !== this._initialValue?.data?.[key]) {
@@ -326,6 +316,7 @@ export class FormCard extends FormBaseCard {
       };
 
       const name = processedConfig.name ?? entity?.attributes?.friendly_name ?? entity?.entity_id;
+      const value = fieldValue ?? entity?.state;
 
       return {
         key: fieldConfig.key,
@@ -334,7 +325,7 @@ export class FormCard extends FormBaseCard {
         required: processedConfig.required ?? undefined,
         selector: processedConfig.selector ?? undefined,
         entity: entity_id,
-        value: fieldValue,
+        value,
         placeholder: processedConfig.placeholder ?? undefined,
         disabled: processedConfig.disabled ?? false,
       };
@@ -369,13 +360,10 @@ export class FormCard extends FormBaseCard {
 
   private _renderField = (dataField: any) => {
     const selector = dataField?.selector ?? { text: undefined };
-    const layout = this._config?.layout ?? "default";
-    const useSettingsRow = layout === "horizontal" || layout === "vertical";
-    const selectorLabel = layout === "vertical" ? undefined : (dataField.name ?? undefined);
-    const selectorHelper = layout === "vertical" ? undefined : (dataField.description ?? undefined);
+    const selectorLabel = dataField.name ?? undefined;
+    const selectorHelper = dataField.description ?? undefined;
 
-    // @ts-ignore
-    const selectorElement = html`
+    return html`
       <ha-selector
         .hass=${this.hass}
         .selector=${selector}
@@ -388,22 +376,6 @@ export class FormCard extends FormBaseCard {
         .label=${selectorLabel}
         .helper=${selectorHelper}
       ></ha-selector>
-    `;
-
-    if (!useSettingsRow) {
-      return selectorElement;
-    }
-
-    return html`
-      <ha-settings-row .narrow=${this.narrow} .slim=${true} class=${`layout-${layout}`} wrap-heading>
-        ${layout === "vertical"
-          ? [
-              dataField.name ? html`<span slot="heading">${dataField.name}</span>` : "",
-              dataField.description ? html`<span slot="description">${dataField?.description}</span>` : "",
-            ]
-          : ""}
-        ${selectorElement}
-      </ha-settings-row>
     `;
   };
 
@@ -431,11 +403,18 @@ export class FormCard extends FormBaseCard {
       };
     }
 
+    let mergedData = ev.detail.value;
+    if (key) {
+      mergedData = {
+        [key]: ev.detail.value,
+      };
+    }
+
     this._value = {
       ...this._value,
       data: {
         ...this._value.data,
-        [key]: ev.detail.value,
+        ...mergedData,
       },
     };
 
@@ -495,7 +474,11 @@ export class FormCard extends FormBaseCard {
       await this.performAction(this._config.save_action, processedValue);
 
       button.actionSuccess();
-      this._updateInitialValue();
+      if (this._config.reset_on_submit) {
+        this._resetChanges();
+      } else {
+        this._updateInitialValue();
+      }
     } catch (err: any) {
       button.actionError();
       this._error = err.message;

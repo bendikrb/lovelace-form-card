@@ -27,5 +27,6 @@ export const GENERIC_LABELS = [
   "expandable",
   "save_label",
   "spread_values_to_data",
+  "reset_on_submit",
   "save_action",
 ];
