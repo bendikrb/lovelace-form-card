@@ -67,10 +67,6 @@ export class FormCardEditor extends LitElement implements LovelaceCardEditor {
 
   @state() private _config?: FormCardConfig;
 
-  @state() private _dirty = false;
-
-  @property({ attribute: false }) public config!: FormCardConfig;
-
   @query("form-card-editor-fields")
   private _formFields?: FormCardEditorFields;
 
@@ -162,7 +158,6 @@ export class FormCardEditor extends LitElement implements LovelaceCardEditor {
       return;
     }
     this._formFields?.addFields();
-    this._dirty = true;
   }
 
   private _fieldsChanged(ev: CustomEvent): void {

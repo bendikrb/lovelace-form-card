@@ -3,23 +3,13 @@ default_config:
 
 homeassistant:
   name: Home
-  latitude: 0
-  longitude: 0
-  elevation: 0
-  unit_system: metric
-  currency: NOK
-  time_zone: "Europe/Oslo"
   auth_providers:
     - type: trusted_networks
       trusted_networks:
         - 0.0.0.0/0
       allow_bypass_login: true
     - type: homeassistant
-#  packages:
-#    specific: !include specific_configuration.yaml
 
 logger:
   default: error
-#downloader:
-#  download_dir: www
 
