@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import js from "@eslint/js";
 import { FlatCompat } from "@eslint/eslintrc";
+import unusedImports from "eslint-plugin-unused-imports";
 
 const _filename = fileURLToPath(import.meta.url);
 const _dirname = path.dirname(_filename);
@@ -27,7 +28,7 @@ export default [
   ),
   {
     plugins: {
-      // "unused-imports": unusedImports,
+      "unused-imports": unusedImports,
     },
 
     languageOptions: {
@@ -164,7 +165,6 @@ export default [
       //     ignoreRestSiblings: true,
       //   },
       // ],
-
       "unused-imports/no-unused-imports": "off",
       "lit/attribute-names": "error",
       "lit/attribute-value-entities": "off",
