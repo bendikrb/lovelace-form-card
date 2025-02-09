@@ -33,9 +33,9 @@ const computeSchema = memoizeOne((t: LocalizeFunc): HaFormSchema[] => [
   {
     type: "expandable",
     title: t("editor.form.actions_heading.title"),
-    description: {
-      suffix: t("editor.form.actions_heading.description"),
-    },
+    headingLevel: 2,
+    expanded: true,
+    icon: "mdi:script-text-play-outline",
     name: "",
     schema: [
       {

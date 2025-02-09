@@ -43,6 +43,8 @@
       "fields": {
         "entity": "Entitet",
         "value": "Verdi",
+        "label": "Tittel",
+        "description": "Beskrivelse",
         "title": "Tittel",
         "layout": "Layout",
         "disabled": "Deaktivert",

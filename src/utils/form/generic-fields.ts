@@ -17,6 +17,7 @@ export const GENERIC_LABELS = [
   "value",
   "entity",
   "title",
+  "label",
   "layout",
   "expandable",
   "save_label",

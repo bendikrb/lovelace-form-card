@@ -42,7 +42,7 @@ export const slugify = (value: string, delimiter = "_") => {
   return slugified;
 };
 
-export async function await_element(el, hard = false) {
+export async function await_element(el: any, hard = false) {
   if (el.localName?.includes("-")) await customElements.whenDefined(el.localName);
   if (el.updateComplete) await el.updateComplete;
   if (hard) {
@@ -54,7 +54,7 @@ export async function await_element(el, hard = false) {
   }
 }
 
-export async function waitRepeat(fn, times, delay) {
+export async function waitRepeat(fn: () => any, times: number, delay: number) {
   while (times--) {
     await fn();
     await new Promise((r) => setTimeout(r, delay));

@@ -10,8 +10,8 @@
         "description": ""
       },
       "actions_heading": {
-        "title": "Actions",
-        "description": "actions description"
+        "title": "Action",
+        "description": "Configure what happens when the form is saved."
       },
       "form_heading": {
         "title": "Card configuration",
