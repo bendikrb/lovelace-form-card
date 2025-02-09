@@ -1,6 +1,7 @@
 import { assign, boolean, object, optional, array, string, any } from "superstruct";
 import type { ActionConfig } from "home-assistant-types/dist/data/lovelace/config/action";
 import type { LovelaceCardConfig } from "home-assistant-types/dist/data/lovelace/config/card";
+import type { Selector } from "home-assistant-types/dist/data/selector";
 
 import { lovelaceCardConfigStruct, entitySharedConfigStruct } from "../shared/config";
 import { actionConfigStruct } from "../shared/config/struct";
@@ -18,27 +19,27 @@ export interface FormCardConfig extends LovelaceCardConfig {
 export type FormCardFields = Record<string, FormCardField>;
 
 export interface FormCardField {
-  key: string;
-  name?: string;
+  name: string;
+  selector: Selector;
+  label?: string;
   description?: string;
-  required?: boolean;
-  selector: {};
   entity?: string;
-  value?: any;
+  default?: any;
   placeholder?: string;
   disabled?: boolean;
+  required?: boolean;
 }
 
 export const fieldConfigStruct = object({
-  key: string(),
-  name: optional(string()),
-  description: optional(string()),
-  required: optional(boolean()),
+  name: string(),
   selector: object(),
+  label: optional(string()),
+  description: optional(string()),
   entity: optional(string()),
-  value: optional(any()),
-  placeholder: optional(string()),
+  default: optional(any()),
   disabled: optional(boolean()),
+  placeholder: optional(string()),
+  required: optional(boolean()),
 });
 
 export const formCardConfigStruct = assign(

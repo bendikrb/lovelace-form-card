@@ -31,13 +31,9 @@ export class FormCardEditorFields extends LitElement {
   }
 
   private _getIndex(key: string) {
-    return this.fields?.findIndex((field) => field.key === key) ?? -1;
+    return this.fields?.findIndex((field) => field.name === key) ?? -1;
   }
 
-  // private _getKey(index: number) {
-  //   const keys = Object.keys(this.fields);
-  //   return keys[index] ?? keys[0];
-  // }
   private _getKey(field: FormCardField) {
     if (!this._fieldKeys.has(field)) {
       this._fieldKeys.set(field, Math.random().toString());
@@ -79,12 +75,12 @@ export class FormCardEditorFields extends LitElement {
   }
 
   private _addField() {
-    const key = this._getUniqueKey(
+    const name = this._getUniqueKey(
       this.hass.localize("ui.panel.config.script.editor.field.field") || "field",
       this.fields || []
     );
     const fields = this.fields.concat({
-      key,
+      name,
       selector: {
         text: {},
       },
@@ -127,11 +123,11 @@ export class FormCardEditorFields extends LitElement {
               (field, idx) => html`
                 <form-card-editor-field-row
                   .sortableData=${field}
-                  .key=${field.key}
+                  .key=${field.name}
                   .index=${idx}
                   .first=${idx === 0}
                   .last=${idx === this.fields.length - 1}
-                  .excludeKeys=${this.fields.filter((f) => f !== field).map((f) => f.key)}
+                  .excludeKeys=${this.fields.filter((f) => f !== field).map((f) => f.name)}
                   .field=${field}
                   .disabled=${this.disabled}
                   @move-down=${this._moveDown}
@@ -250,13 +246,13 @@ export class FormCardEditorFields extends LitElement {
 
   private _getUniqueKey(base: string, fields: FormCardField[]): string {
     let key = base;
-    if (fields.find((f) => f.key === base)) {
+    if (fields.find((f) => f.name === base)) {
       let i = 2;
       do {
         key = `${base}_${i}`;
         i++;
         // eslint-disable-next-line no-loop-func
-      } while (fields.find((f) => f.key === key));
+      } while (fields.find((f) => f.name === key));
     }
     return key;
   }

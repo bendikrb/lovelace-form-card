@@ -44,8 +44,6 @@ export class FormEntityRow extends FormBaseCard {
       ] as const
   );
 
-  @state() private _templateResults: Partial<Record<string, RenderTemplateResult | undefined>> = {};
-
   public static async getStubConfig(hass: HomeAssistant): Promise<FormEntityRowConfig> {
     const entities = Object.keys(hass.states);
     const entity_id = entities[0];

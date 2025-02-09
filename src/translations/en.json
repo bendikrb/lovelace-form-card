@@ -43,6 +43,8 @@
       "fields": {
         "entity": "Entity",
         "value": "Value",
+        "label": "Label",
+        "description": "Description",
         "title": "Title",
         "layout": "Layout",
         "disabled": "Disabled",
@@ -59,6 +61,7 @@
     }
   },
   "card": {
-    "not_found": "Entity not found"
+    "not_found": "Entity not found",
+    "not_all_required_fields": "Not all required fields are filled in"
   }
 }
