@@ -63,12 +63,12 @@ export class FormCardEditorFieldRow extends LitElement {
           name: "",
           schema: [
             {
-              name: "key",
-              selector: { text: {} },
+              name: "name",
+              selector: { text: { autocomplete: "off" } },
             },
             {
-              name: "name",
-              selector: { text: {} },
+              name: "label",
+              selector: { text: { autocomplete: "off" } },
             },
           ],
         },
@@ -82,11 +82,11 @@ export class FormCardEditorFieldRow extends LitElement {
           schema: [
             {
               name: "description",
-              selector: { text: {} },
+              selector: { text: { autocomplete: "off" } },
             },
             {
-              name: "value",
-              selector: { text: {} },
+              name: "default",
+              selector: { text: { autocomplete: "off" } },
             },
           ],
         },
@@ -143,7 +143,7 @@ export class FormCardEditorFieldRow extends LitElement {
 
   protected render() {
     const schema = this._schema();
-    const data = { ...this.field, key: this._errorKey ?? this.key };
+    const data = { ...this.field, name: this._errorKey ?? this.key };
     const yamlValue = [this.field];
     const localize = setupCustomlocalize(this.hass!);
     const headerLabel = this._computeHeaderLabel(data);
@@ -272,7 +272,7 @@ export class FormCardEditorFieldRow extends LitElement {
       this._yamlError = "yaml_error";
       return;
     }
-    const key = value.key;
+    const key = value.name;
     if (this.excludeKeys.includes(key)) {
       this._yamlError = "key_not_unique";
       return;
@@ -285,15 +285,15 @@ export class FormCardEditorFieldRow extends LitElement {
   }
 
   private _maybeSetKey(value: FormCardField): void {
-    const nameChanged = value.name !== this.field.name;
-    const keyChanged = value.key !== this.key;
-    if (!nameChanged || keyChanged) {
+    const labelChanged = value.label !== this.field.label;
+    const keyChanged = value.name !== this.key;
+    if (!labelChanged || keyChanged) {
       return;
     }
-    const slugifyName = this.field.name
-      ? slugify(this.field.name)
+    const slugifyLabel = this.field.label
+      ? slugify(this.field.label)
       : this.hass.localize("ui.panel.config.script.editor.field.field") || "field";
-    const regex = new RegExp(`^${slugifyName}(_\\d)?$`);
+    const regex = new RegExp(`^${slugifyLabel}(_\\d)?$`);
     if (regex.test(this.key)) {
       let key = !value.name
         ? this.hass.localize("ui.panel.config.script.editor.field.field") || "field"
@@ -307,7 +307,7 @@ export class FormCardEditorFieldRow extends LitElement {
         } while (this.excludeKeys.includes(uniqueKey));
         key = uniqueKey;
       }
-      value.key = key;
+      value.name = key;
     }
   }
 
@@ -317,15 +317,15 @@ export class FormCardEditorFieldRow extends LitElement {
     this._maybeSetKey(value);
 
     // Don't allow to set an empty key, or duplicate an existing key.
-    if (!value.key || this.excludeKeys.includes(value.key)) {
-      this._uiError = value.key
+    if (!value.name || this.excludeKeys.includes(value.name)) {
+      this._uiError = value.name
         ? {
             key: "key_not_unique",
           }
         : {
             key: "key_not_null",
           };
-      this._errorKey = value.key ?? "";
+      this._errorKey = value.name ?? "";
       return;
     }
     this._errorKey = undefined;
@@ -334,7 +334,7 @@ export class FormCardEditorFieldRow extends LitElement {
     // If we render the default with an incompatible selector, it risks throwing an exception and not rendering.
     // Clear the default when changing the selector type.
     if (Object.keys(this.field.selector!)[0] !== Object.keys(value.selector)[0]) {
-      delete value.value;
+      delete value.default;
     }
 
     fireEvent(this, "value-changed", { value });
@@ -346,7 +346,7 @@ export class FormCardEditorFieldRow extends LitElement {
       const selectorType = Object.keys(field.selector)[0];
       labelPrefix = this.hass.localize(`ui.components.selectors.selector.types.${selectorType}`) ?? "";
     }
-    return `${labelPrefix ? `${labelPrefix}: ` : ""}${field.key}`;
+    return `${labelPrefix ? `${labelPrefix}: ` : ""}${field.name}`;
   }
 
   private _computeLabelCallback = (schema: SchemaUnion<ReturnType<typeof this._schema>>): string => {
@@ -354,10 +354,7 @@ export class FormCardEditorFieldRow extends LitElement {
     if (GENERIC_LABELS.includes(schema.name)) {
       return customLocalize(`editor.card.fields.${schema.name}`);
     }
-    switch (schema.name) {
-      default:
-        return this.hass.localize(`ui.panel.config.script.editor.field.${schema.name}`);
-    }
+    return this.hass.localize(`ui.panel.config.script.editor.field.${schema.name}`);
   };
 
   private _computeError = (error: string) =>

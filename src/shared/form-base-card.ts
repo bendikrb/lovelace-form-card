@@ -2,12 +2,12 @@ import { LitElement } from "lit";
 import { property, state } from "lit/decorators.js";
 import type { HomeAssistant, ServiceCallRequest } from "home-assistant-types";
 import type { HassServiceTarget, UnsubscribeFunc } from "home-assistant-js-websocket";
-
 import type { RenderTemplateResult } from "home-assistant-types/dist/data/ws-templates";
 import type { CallServiceActionConfig } from "home-assistant-types/dist/data/lovelace/config/action";
-import { fireEvent, subscribeRenderTemplate } from "../utils";
 import type { FormCardConfig } from "../cards/form-card-config";
 import type { FormEntityRowConfig } from "../cards/form-entity-row-config";
+
+import { fireEvent, getValue, hasTemplate, subscribeRenderTemplate } from "../utils";
 
 export type FormType = "base" | "card" | "entity-row";
 
@@ -31,6 +31,8 @@ export class FormBaseCard extends LitElement {
   };
 
   @state() protected _config?: FormCardConfig | FormEntityRowConfig;
+
+  @state() protected _templateResults: Record<string, RenderTemplateResult | undefined> = {};
 
   @state() protected _unsubRenderTemplates = new Map<string, Promise<UnsubscribeFunc>>();
 
@@ -94,6 +96,20 @@ export class FormBaseCard extends LitElement {
     }
   }
 
+  protected isTemplate(key: string) {
+    const value = getValue(key, this._config);
+    return hasTemplate(value);
+  }
+
+  protected _getProcessedValue(key: string) {
+    const value = getValue(key, this._config);
+    if (this.isTemplate(key)) {
+      const tpl = this._templateResults[key] ?? {};
+      return "result" in tpl ? tpl.result : value;
+    }
+    return value;
+  }
+
   protected async _performAction(actionConfig: CallServiceActionConfig, value: Record<string, any>) {
     if (Object.keys(value).length === 1 && Object.prototype.hasOwnProperty.call(value, "value")) {
       value = value.value ?? "";
@@ -115,20 +131,18 @@ export class FormBaseCard extends LitElement {
     // Render all entries in service data as templates
     const processedData: Promise<any>[] = Object.entries(actionData).map(
       async ([key, v]): Promise<(string | any)[]> => {
-        if (typeof v === "string" && v.includes("{")) {
+        if (typeof v === "string" && hasTemplate(v)) {
           return [key, (await this._renderTemplate(v, variables)).result];
         }
         return [key, v];
       }
     );
-    const processedTarget = Object.entries(actionTarget).map(
-      async ([key, v]): Promise<(string | any)[]> => {
-        if (typeof v === "string" && v.includes("{")) {
-          return [key, (await this._renderTemplate(v, variables)).result];
-        }
-        return [key, v];
+    const processedTarget = Object.entries(actionTarget).map(async ([key, v]): Promise<(string | any)[]> => {
+      if (typeof v === "string" && hasTemplate(v)) {
+        return [key, (await this._renderTemplate(v, variables)).result];
       }
-    );
+      return [key, v];
+    });
 
     const { entity_id, ...serviceData } = (await Promise.all(processedData)).reduce(
       (acc, [key, v]) => ({ ...acc, [key]: v }),
@@ -137,7 +151,7 @@ export class FormBaseCard extends LitElement {
     const serviceTarget: HassServiceTarget = (await Promise.all(processedTarget)).reduce(
       (acc, [key, v]) => ({ ...acc, [key]: v }),
       {}
-    )
+    );
 
     if (this._config?.spread_values_to_data) {
       Object.entries(value).forEach(([key, v]) => {
@@ -146,7 +160,11 @@ export class FormBaseCard extends LitElement {
         }
       });
     }
-    if (is_entity_row && !Object.prototype.hasOwnProperty.call(serviceData, "value") && this._config?.spread_values_to_data) {
+    if (
+      is_entity_row &&
+      !Object.prototype.hasOwnProperty.call(serviceData, "value") &&
+      this._config?.spread_values_to_data
+    ) {
       serviceData.value = value;
     }
 

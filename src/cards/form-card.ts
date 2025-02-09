@@ -1,12 +1,15 @@
-import type { CSSResultGroup, PropertyValues } from "lit";
 import { css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
+import type { CSSResultGroup, PropertyValues } from "lit";
 import type { HomeAssistant } from "home-assistant-types";
 import type { LovelaceCard, LovelaceCardEditor } from "home-assistant-types/dist/panels/lovelace/types";
 import type { ActionConfig } from "home-assistant-types/dist/data/lovelace/config/action";
-import type { RenderTemplateError, RenderTemplateResult } from "home-assistant-types/dist/data/ws-templates";
+import type { RenderTemplateResult } from "home-assistant-types/dist/data/ws-templates";
 import type { HaProgressButton } from "home-assistant-types/dist/components/buttons/ha-progress-button";
+import type { HaFormData, HaFormSchema, HaFormSelector } from "home-assistant-types/dist/components/ha-form/types";
+
+import memoizeOne from "memoize-one";
 
 import {
   subscribeRenderTemplate,
@@ -17,10 +20,12 @@ import {
   fireEvent,
   slugify,
   loadDeveloperToolsTemplate,
+  hasTemplate,
 } from "../utils";
 
 import { FORM_CARD_EDITOR_NAME, FORM_CARD_NAME } from "../const";
 import type { FormCardConfig, FormCardField } from "./form-card-config";
+import { handleStructError } from "../shared/config";
 import { FormBaseCard } from "../shared/form-base-card";
 
 registerCustomCard({
@@ -35,42 +40,63 @@ export class FormCard extends FormBaseCard implements LovelaceCard {
 
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property({ type: Boolean, reflect: true }) public narrow = false;
+  @property({ attribute: false }) public value?: {
+    action: string;
+    data?: Record<string, any>;
+  };
 
   @state() protected _config?: FormCardConfig;
 
-  @state() private _error?: string;
+  @state() private _processedSchema: HaFormSchema[] = [];
 
-  @state() private _templateResults: Record<
-    string,
-    Record<string, RenderTemplateResult | RenderTemplateError | undefined>
-  > = {};
+  @state() private _errorMsg?: string;
 
-  private _getFieldIndex(key: string) {
-    return this._config?.fields?.findIndex((field) => field.key === key) ?? -1;
-  }
+  @state() private _warnings?: string[];
 
-  private _getTemplateKey(fieldId: string, path: string): string {
-    return `${fieldId}:${path}`;
-  }
+  @state() private _yamlMode = false;
 
-  private _findTemplatesInObject(obj: any, _parentPath = ""): [string, string][] {
-    const templates: [string, string][] = [];
+  setConfig(config: FormCardConfig) {
+    if (!config.fields) {
+      throw new Error("You need to define form fields");
+    }
 
-    const traverse = (current: any, path: string[] = []) => {
-      if (!current) return;
-
-      if (typeof current === "string" && current.includes("{")) {
-        templates.push([path.join("."), current]);
-      } else if (typeof current === "object" && !Array.isArray(current)) {
-        Object.entries(current).forEach(([key, value]) => {
-          traverse(value, [...path, key]);
-        });
-      }
+    // Disconnect old templates
+    // if (this._config) {
+    //   this._disconnectOldTemplates(this._config, config);
+    // }
+    this._value = {
+      action: "action",
+      data: {},
     };
 
-    traverse(obj);
-    return templates;
+    this._config = { ...config };
+  }
+
+  public async connectedCallback(): Promise<void> {
+    super.connectedCallback();
+    void loadHaComponents();
+    void loadConfigDashboard();
+
+    void this._tryConnect();
+    if (this.hass && this._config) {
+      this._processedSchema = this._schema(this._config.fields);
+    }
+  }
+
+  protected updated(changedProps: PropertyValues): void {
+    super.updated(changedProps);
+
+    if (changedProps.has("hass") || changedProps.has("_config")) {
+      if (this.hass && this._config) {
+        this._tryConnect().then(() => {
+          this._processedSchema = this._schema(this._config!.fields);
+        });
+      }
+    }
+
+    if (changedProps.has("_templateResults")) {
+      this._processedSchema = this._schema(this._config!.fields);
+    }
   }
 
   public static async getConfigElement(): Promise<LovelaceCardEditor> {
@@ -89,8 +115,8 @@ export class FormCard extends FormBaseCard implements LovelaceCard {
       type: `custom:${FORM_CARD_NAME}`,
       fields: [
         {
-          name: field_name,
-          key: field_key,
+          name: field_key,
+          label: field_name,
           selector: {
             text: {},
           },
@@ -99,65 +125,56 @@ export class FormCard extends FormBaseCard implements LovelaceCard {
     };
   }
 
-  public getCardSize() {
-    return 1;
+  public getCardSize(): number {
+    return 3;
   }
 
-  setConfig(config: FormCardConfig) {
-    // Disconnect any templates that are no longer present or have changed
-    config.fields?.forEach((fieldConfig) => {
-      const fieldId = fieldConfig.key;
-      const fieldIndex = this._getFieldIndex(fieldId);
-      const oldTemplates = this._findTemplatesInObject(this._config?.fields[fieldIndex] || {});
-      const newTemplates = this._findTemplatesInObject(fieldConfig);
+  private _findTemplatesInObject(obj: any, path: string[] = []): [string, string][] {
+    const templates: [string, string][] = [];
 
-      // Disconnect templates that are no longer present or have changed
-      oldTemplates.forEach(([path, oldTemplate]) => {
-        const newTemplate = newTemplates.find(([p, _]) => p === path)?.[1];
-        if (!newTemplate || newTemplate !== oldTemplate) {
-          void this._tryDisconnectKey(this._getTemplateKey(fieldId, path));
+    if (typeof obj === "string" && hasTemplate(obj)) {
+      templates.push([path.join("."), obj]);
+    } else if (Array.isArray(obj)) {
+      obj.forEach((item, index) => {
+        if (path?.[0] === "fields") {
+          index = item.name;
         }
+        templates.push(...this._findTemplatesInObject(item, [...path, String(index)]));
       });
-    });
-
-    this._value = {
-      action: "action",
-      data: {},
-    };
-
-    // Initialize data with default values from config
-    if (config.fields) {
-      config.fields.forEach((field) => {
-        if (field.value !== undefined) {
-          this._value!.data![field.key] = field.value;
+    } else if (typeof obj === "object" && obj !== null) {
+      for (const key in obj) {
+        if (key !== "name") {
+          templates.push(...this._findTemplatesInObject(obj[key], [...path, key]));
         }
-      });
+      }
     }
 
-    this._updateInitialValue();
-    this._config = { ...config };
+    return templates;
+  }
+
+  private _getTemplateKey(fieldId: string | undefined, path: string): string {
+    return fieldId ? `${fieldId}.${path}` : path;
   }
 
   private async _tryConnect(): Promise<void> {
-    if (!this._config?.fields) return;
+    if (!this._config) return;
 
-    this._config.fields.forEach((fieldConfig) => {
-      const templates = this._findTemplatesInObject(fieldConfig);
-      templates.forEach(([path, template]) => {
-        const templateKey = this._getTemplateKey(fieldConfig.key, path);
-        this._tryConnectTemplate(fieldConfig.key, path, template, templateKey, fieldConfig);
-      });
+    const allTemplates: { fieldId?: string; path: string; template: string }[] = [];
+
+    const foundTemplates = this._findTemplatesInObject(this._config);
+    foundTemplates.forEach(([path, template]) => {
+      allTemplates.push({ path, template });
     });
+
+    // Connect all templates
+    const promises = allTemplates.map((t) => this._tryConnectTemplate(t.fieldId, t.path, t.template));
+    await Promise.all(promises);
   }
 
-  private async _tryConnectTemplate(
-    fieldId: string,
-    path: string,
-    template: string,
-    templateKey: string,
-    fieldConfig: FormCardField
-  ): Promise<void> {
-    if (this._unsubRenderTemplates.get(templateKey) !== undefined || !this.hass || !this._config) {
+  private async _tryConnectTemplate(fieldId: string | undefined, path: string, template: string): Promise<void> {
+    const templateKey = this._getTemplateKey(fieldId, path);
+
+    if (this._unsubRenderTemplates.has(templateKey) || !this.hass) {
       return;
     }
 
@@ -167,55 +184,43 @@ export class FormCard extends FormBaseCard implements LovelaceCard {
         (result) => {
           this._templateResults = {
             ...this._templateResults,
-            [fieldId]: {
-              ...(this._templateResults[fieldId] || {}),
-              [path]: result,
-            },
+            [templateKey]: result as RenderTemplateResult,
           };
         },
         {
           template,
-          entity_ids: fieldConfig.entity,
           variables: {
-            config: this._config,
-            user: this.hass.user!.name,
-            entity: fieldConfig.entity,
+            fields: this._value,
+            value: this._value,
           },
           strict: true,
+          report_errors: true,
         }
       );
       this._unsubRenderTemplates.set(templateKey, sub);
       await sub;
-    } catch (_err) {
-      const result = {
-        result: template,
-        listeners: {
-          all: false,
-          domains: [],
-          entities: [],
-          time: false,
-        },
-      };
+    } catch (err) {
+      // console.error("Failed to subscribe to template:", template, err);
+      // Handle subscription failure (e.g., set a default value)
       this._templateResults = {
         ...this._templateResults,
-        [fieldId]: {
-          ...(this._templateResults[fieldId] || {}),
-          [path]: result,
-        },
+        [templateKey]: { result: "Subscription failed" } as RenderTemplateResult,
       };
       this._unsubRenderTemplates.delete(templateKey);
     }
   }
 
-  private _processTemplatedObject(fieldId: string, obj: any): any {
+  private _processTemplatedObject(fieldId: string, obj: any, pathPrefix = ""): any {
     if (!obj) return obj;
+    pathPrefix = pathPrefix ? `${pathPrefix}.` : "";
 
     const processValue = (value: any): any => {
-      if (typeof value === "string" && value.includes("{")) {
+      if (typeof value === "string" && hasTemplate(value)) {
         // Find the template result for this value
         const path = this._findTemplatesInObject(obj).find(([_, template]) => template === value)?.[0];
         if (path) {
-          const res = this._templateResults[fieldId]?.[path] ?? {};
+          const templateKey = this._getTemplateKey(`${pathPrefix}${fieldId}`, path);
+          const res = this._templateResults[templateKey] ?? {};
           return "result" in res ? res.result : value;
         }
         return value;
@@ -234,107 +239,37 @@ export class FormCard extends FormBaseCard implements LovelaceCard {
     return processValue(obj);
   }
 
-  public connectedCallback() {
-    super.connectedCallback();
-    void loadHaComponents();
-    void loadConfigDashboard();
-
-    void this._tryConnect();
-  }
-
-  public isTemplate(key: string) {
-    const value = this._config?.[key];
-    return value?.includes("{");
-  }
-
-  protected _getValue(key: string) {
-    return this.isTemplate(key) ? this._templateResults[key]?.result : this._config?.[key];
-  }
-
-  protected updated(changedProps: PropertyValues): void {
-    super.updated(changedProps);
-    if (!this._config || !this.hass) {
-      return;
-    }
-    if (changedProps.has("value") && this.value) {
-      this._value = {
-        action: this.value.action,
-        data: { ...this.value.data },
+  private _schema(fields: FormCardField[]): HaFormSchema[] {
+    return fields.map((field) => {
+      const templatedField = this._processTemplatedObject(field.name, field, "fields");
+      const schemaItem: HaFormSelector = {
+        name: field.name,
+        selector: templatedField.selector,
+        required: templatedField.required,
+        disabled: templatedField.disabled,
+        default: templatedField.default,
+        context: {
+          label: templatedField.label,
+        },
       };
-      this._updateInitialValue();
-    }
-    void this._tryConnect();
-  }
-
-  private _getProcessedFieldValue(key: string, field: any): any {
-    // First check if we have a user-edited value
-    if (this._value?.data?.[key] !== undefined && this._value?.data?.[key] !== this._initialValue?.data?.[key]) {
-      return this._value?.data?.[key];
-    }
-
-    // Process the field's value template if it exists
-    const processedField = this._processTemplatedObject(key, field);
-    return processedField.value;
-  }
-
-  private _getProcessedFormValue(): this["value"] {
-    if (!this._config?.fields) {
-      return this._value;
-    }
-
-    const processedData: Record<string, any> = {};
-
-    // Process all fields, including ones that haven't been edited
-    this._config.fields.forEach((field) => {
-      processedData[field.key] = this._getProcessedFieldValue(field.key, field);
+      return schemaItem;
     });
-
-    return {
-      action: this._value?.action ?? "action",
-      data: processedData,
-    };
   }
 
-  protected render() {
+  private _formData = memoizeOne((data: Record<string, HaFormData> | undefined) => data || {});
+
+  render() {
     if (!this._config || !this.hass) {
       return nothing;
     }
+    const data = this._formData(this._value);
+
+    const title = this._getProcessedValue("title");
     const hasPendingChanges = this._hasPendingChanges();
-    const { title } = this._config;
-
-    const formFields = this._config.fields.map((fieldConfig) => {
-      // Process the entire field config to resolve any templates
-      const processedConfig = this._processTemplatedObject(fieldConfig.key, fieldConfig);
-      const fieldValue = this._getProcessedFieldValue(fieldConfig.key, fieldConfig);
-
-      const entity_id = processedConfig.entity;
-      const base = this.hass.states[entity_id];
-      const entity = (base && JSON.parse(JSON.stringify(base))) || {
-        entity_id: "binary_sensor.",
-        attributes: { icon: "no:icon", friendly_name: "" },
-        state: "off",
-      };
-
-      const name = processedConfig.name ?? entity?.attributes?.friendly_name ?? entity?.entity_id;
-      const value = fieldValue ?? entity?.state;
-
-      return {
-        key: fieldConfig.key,
-        name,
-        description: processedConfig.description ?? undefined,
-        required: processedConfig.required ?? undefined,
-        selector: processedConfig.selector ?? undefined,
-        entity: entity_id,
-        value,
-        placeholder: processedConfig.placeholder ?? undefined,
-        disabled: processedConfig.disabled ?? false,
-      };
-    });
-
     const fill_container = false;
-    const disabled = false;
-    const save_label = this._getValue("save_label") ?? this.hass.localize("ui.common.save");
+    const save_label = this._getProcessedValue("save_label") ?? this.hass.localize("ui.common.save");
 
+    // this._processTemplatedObject(this._config.title)
     return html`
       <ha-card
         .header=${title}
@@ -344,40 +279,37 @@ export class FormCard extends FormBaseCard implements LovelaceCard {
         })}
       >
         <div class="card-content">
-          ${formFields.map((dataField) => this._renderField(dataField))}
-          ${this._error ? html`<div class="error">${this._error}</div>` : nothing}
+          ${this._warnings
+            ? html`<ha-alert alert-type="warning" .title=${this.hass.localize("ui.errors.config.editor_not_supported")}>
+                ${this._warnings!.length > 0 && this._warnings![0] !== undefined
+                  ? html` <ul>
+                      ${this._warnings!.map((warning) => html`<li>${warning}</li>`)}
+                    </ul>`
+                  : ""}
+                ${this.hass.localize("ui.errors.config.edit_in_yaml_supported")}
+              </ha-alert>`
+            : ""}
+          <ha-form
+            .hass=${this.hass}
+            .schema=${this._processedSchema}
+            .data=${data}
+            .computeLabel=${this._computeLabel}
+            .computeHelper=${this._computeHelper}
+            @value-changed=${this._formDataChanged}
+            @ui-mode-not-available=${this._handleUiModeNotAvailable}
+          ></ha-form>
+          ${this._errorMsg ? html`<div class="error">${this._errorMsg}</div>` : nothing}
           <div class="card-actions">
             <ha-button @click=${this._resetChanges} .disabled=${!hasPendingChanges}>
               ${this.hass.localize("ui.common.undo")}
             </ha-button>
-            <ha-progress-button @click=${this._handleSave} .disabled=${disabled}> ${save_label} </ha-progress-button>
+            <ha-progress-button @click=${this._handleSave}> ${save_label} </ha-progress-button>
           </div>
         </div>
         ${this.preview ? this._renderDebug() : nothing}
       </ha-card>
     `;
   }
-
-  private _renderField = (dataField: any) => {
-    const selector = dataField?.selector ?? { text: undefined };
-    const selectorLabel = dataField.name ?? undefined;
-    const selectorHelper = dataField.description ?? undefined;
-
-    return html`
-      <ha-selector
-        .hass=${this.hass}
-        .selector=${selector}
-        .key=${dataField.key}
-        @value-changed=${this._formDataChanged}
-        .value=${dataField.value}
-        .placeholder=${dataField.placeholder ?? undefined}
-        .required=${dataField.required ?? undefined}
-        .disabled=${dataField.disabled ?? undefined}
-        .label=${selectorLabel}
-        .helper=${selectorHelper}
-      ></ha-selector>
-    `;
-  };
 
   private _renderDebug() {
     if (!this._debugData) {
@@ -391,35 +323,23 @@ export class FormCard extends FormBaseCard implements LovelaceCard {
     `;
   }
 
-  private _formDataChanged(ev: CustomEvent) {
+  private _handleUiModeNotAvailable(ev: CustomEvent) {
     ev.stopPropagation();
-    const target = ev.target as any;
-    const key = target.key;
 
-    if (!this._value) {
-      this._value = {
-        action: "action",
-        data: {},
-      };
+    this._warnings = handleStructError(this.hass, ev.detail).warnings;
+    if (!this._yamlMode) {
+      this._yamlMode = true;
     }
-
-    let mergedData = ev.detail.value;
-    if (key) {
-      mergedData = {
-        [key]: ev.detail.value,
-      };
-    }
-
-    this._value = {
-      ...this._value,
-      data: {
-        ...this._value.data,
-        ...mergedData,
-      },
-    };
-
-    fireEvent(this, "value-changed", { value: this._value });
   }
+
+  private _computeLabel = (schema): string => {
+    if (schema.context?.label) {
+      return schema.context.label;
+    }
+    return schema.name;
+  };
+
+  private _computeHelper = (schema): string => schema.description ?? undefined;
 
   private _resetChanges(): void {
     if (this._initialValue) {
@@ -427,6 +347,16 @@ export class FormCard extends FormBaseCard implements LovelaceCard {
 
       fireEvent(this, "value-changed", { value: this._value });
     }
+  }
+
+  private _formDataChanged(ev: CustomEvent) {
+    ev.stopPropagation();
+    const value = {
+      ...ev.detail.value,
+    };
+
+    this._value = value;
+    fireEvent(this, "value-changed", { value });
   }
 
   public async performAction(actionConfig: ActionConfig, value: any) {
@@ -440,7 +370,7 @@ export class FormCard extends FormBaseCard implements LovelaceCard {
     // noinspection JSDeprecatedSymbols
     const processedData: Promise<any>[] = Object.entries(actionConfig.data ?? actionConfig.service_data ?? {}).map(
       async ([key, v]): Promise<(string | any)[]> => {
-        if (typeof v === "string" && v.includes("{")) {
+        if (typeof v === "string" && hasTemplate(v)) {
           return [key, (await this._renderTemplate(v, variables)).result];
         }
         return [key, v];
@@ -467,10 +397,11 @@ export class FormCard extends FormBaseCard implements LovelaceCard {
     }
 
     button.progress = true;
-    this._error = undefined;
+    this._errorMsg = undefined;
 
     try {
-      const processedValue = this._getProcessedFormValue()?.data;
+      // const processedValue = this._getProcessedFormValue()?.data;
+      const processedValue = this._value;
       await this.performAction(this._config.save_action, processedValue);
 
       button.actionSuccess();
@@ -481,7 +412,7 @@ export class FormCard extends FormBaseCard implements LovelaceCard {
       }
     } catch (err: any) {
       button.actionError();
-      this._error = err.message;
+      this._errorMsg = err.message;
     } finally {
       button.progress = false;
     }

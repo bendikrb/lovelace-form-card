@@ -18,6 +18,13 @@ export interface TemplateListeners {
   time: boolean;
 }
 
+export interface TemplateSubscription {
+  template: string;
+  key: string;
+  field?: string;
+  variables?: Record<string, unknown>;
+}
+
 export type TemplatePreview = TemplatePreviewState | TemplatePreviewError;
 
 interface TemplatePreviewState {

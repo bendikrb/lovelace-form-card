@@ -81,3 +81,7 @@ export function reorderRecord<T>(record: Record<string, T>, oldIndex: number, ne
 
   return reorderedRecord;
 }
+
+export function getValue(path: string, obj: any) {
+  return path.split(".").reduce((acc, part) => acc && acc[part], obj);
+}

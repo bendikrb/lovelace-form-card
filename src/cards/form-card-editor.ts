@@ -83,6 +83,7 @@ export class FormCardEditor extends LitElement implements LovelaceCardEditor {
 
   protected firstUpdated(changedProps: PropertyValues): void {
     super.firstUpdated(changedProps);
+    // noinspection JSIgnoredPromiseFromCall
     this.hass.loadFragmentTranslation("config");
   }
 

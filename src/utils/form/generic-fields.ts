@@ -12,12 +12,6 @@ export const GENERIC_LABELS = [
   "content_info",
   "use_entity_picture",
   "collapsible_controls",
-
-  // "key",
-  // "name",
-  // "description",
-  // "selector",
-  // "required",
   "disabled",
   "show_state",
   "value",
