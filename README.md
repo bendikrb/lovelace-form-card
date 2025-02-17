@@ -73,19 +73,19 @@ _or_
 type: custom:form-card
 title: My Custom Form
 fields:
-  - key: text_field
-    name: Text Field
+  - name: text_field
+    label: Text Field
     entity: input_text.my_text
     selector:
       text: { }
-  - key: number_field
-    name: Number Field
+  - name: number_field
+    label: Number Field
     selector:
       number:
         min: 0
         max: 100
         step: 1
-    value: "50"
+    default: "50"
 save_action:
   action: call-service
   service: input_text.set_value
@@ -117,8 +117,8 @@ save_action:
 | `type`                  | `string`   | N/A            | ✅         | Must be set to `custom:form-entity-row`.                                                   |
 | `selector`              | `selector` | N/A            | ✅         | [Selector][home-assistant-selector-docs] configuration.                                    |
 | `entity`                | `string`   | N/A            | ✅         | Entity ID for the field.                                                                   |
-| `name`                  | `string`   | N/A            | ❌         | Display name for the field.                                                                |
-| `value`                 | `any`      | `entity` state | ❌         | Default value for the field. Will be set to `entity` (if specified) state if not provided. |
+| `label`                 | `string`   | N/A            | ❌         | Display name for the field.                                                                |
+| `default`               | `any`      | `entity` state | ❌         | Default value for the field. Will be set to `entity` (if specified) state if not provided. |
 | `icon`                  | `string`   | N/A            | ❌         | Icon for the field.                                                                        | 
 | `spread_values_to_data` | `boolean`  | `false`        | ❌         | If `true`, spreads form values into action payload directly.                               |
 | `change_action`         | `action`   | N/A            | ❌         | Defines what [action][home-assistant-action-docs] occurs when the field is changed.        |
@@ -132,11 +132,11 @@ Each element in the `fields` array supports the following options:
 
 | Parameter     | Type       | Default        | Required? | Description                                                                                |
 |---------------|------------|----------------|-----------|--------------------------------------------------------------------------------------------|
-| `key`         | `string`   | N/A            | ✅         | Unique identifier for the field.                                                           |
-| `name`        | `string`   | N/A            | ❌         | Display name for the field.                                                                |
+| `name`        | `string`   | N/A            | ✅         | Unique identifier for the field.                                                           |
+| `label`       | `string`   | N/A            | ❌         | Display name for the field.                                                                |
 | `entity`      | `string`   | N/A            | ❌         | Entity ID for the field.                                                                   |
 | `selector`    | `selector` | N/A            | ✅         | [Selector][home-assistant-selector-docs] configuration.                                    |
-| `value`       | `any`      | `entity` state | ❌         | Default value for the field. Will be set to `entity` (if specified) state if not provided. |
+| `default`     | `any`      | `entity` state | ❌         | Default value for the field. Will be set to `entity` (if specified) state if not provided. |
 | `description` | `string`   | N/A            | ❌         | Description for the field.                                                                 |
 | `placeholder` | `string`   | N/A            | ❌         | Placeholder text for the field.                                                            |
 | `required`    | `boolean`  | `false`        | ❌         | Marks the field as required.                                                               |
@@ -168,15 +168,15 @@ For entity rows and fields with `entity` specified, the following variables are 
 type: custom:form-card
 title: Dynamic Input
 fields:
-  - key: temperature
-    name: Desired Temperature
+  - name: temperature
+    label: Desired Temperature
     entity: climate.living_room
     selector:
       number:
         min: 10
         max: 30
         step: 1
-    value: "{{ state_attr(entity, 'temperature') }}"
+    default: "{{ state_attr(entity, 'temperature') }}"
 save_action:
   action: call-service
   service: climate.set_temperature
@@ -200,8 +200,8 @@ type: entities
 entities:
   - type: custom:form-entity-row
     entity: input_text.my_text
-    name: Custom Input
-    value: "Default Value"
+    label: Custom Input
+    default: "Default Value"
     change_action:
       action: call-service
       service: input_text.set_value
