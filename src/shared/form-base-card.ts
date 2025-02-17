@@ -18,17 +18,11 @@ export class FormBaseCard extends LitElement {
 
   @property({ type: Boolean }) public preview = false;
 
-  @property({ attribute: false }) public value?: {
-    action: string;
-    data?: Record<string, any>;
-  };
+  @property({ attribute: false }) public formData?: Record<string, any>;
 
-  @state() protected _value!: this["value"];
+  @state() protected _formData!: this["formData"];
 
-  @state() protected _initialValue?: {
-    action: string;
-    data?: Record<string, any>;
-  };
+  @state() protected _initialValue?: Record<string, any>;
 
   @state() protected _config?: FormCardConfig | FormEntityRowConfig;
 
@@ -47,11 +41,11 @@ export class FormBaseCard extends LitElement {
   }
 
   protected _updateInitialValue(): void {
-    this._initialValue = structuredClone(this._value);
+    this._initialValue = structuredClone(this._formData);
   }
 
   protected _hasPendingChanges(): boolean {
-    return JSON.stringify(this._value) !== JSON.stringify(this._initialValue);
+    return JSON.stringify(this._formData) !== JSON.stringify(this._initialValue);
   }
 
   protected async _renderTemplate(template: string, variables: Record<string, any>): Promise<RenderTemplateResult> {

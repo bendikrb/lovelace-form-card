@@ -40,16 +40,9 @@ export class FormCard extends FormBaseCard implements LovelaceCard {
 
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property({ attribute: false }) public value?: {
-    action: string;
-    data?: Record<string, any>;
-  };
-
   @state() protected _config?: FormCardConfig;
 
   @state() private _processedSchema: HaFormSchema[] = [];
-
-  @state() private _formData?: Record<string, any>;
 
   @state() private _errorMsg?: string;
 
@@ -61,15 +54,6 @@ export class FormCard extends FormBaseCard implements LovelaceCard {
     if (!config.fields) {
       throw new Error("You need to define form fields");
     }
-
-    // Disconnect old templates
-    // if (this._config) {
-    //   this._disconnectOldTemplates(this._config, config);
-    // }
-    this._value = {
-      action: "action",
-      data: {},
-    };
 
     this._config = { ...config };
   }
@@ -87,13 +71,14 @@ export class FormCard extends FormBaseCard implements LovelaceCard {
 
   protected updated(changedProps: PropertyValues): void {
     super.updated(changedProps);
+    if (!this.hass || !this._config) {
+      return;
+    }
 
     if (changedProps.has("hass") || changedProps.has("_config")) {
-      if (this.hass && this._config) {
-        this._tryConnect().then(() => {
-          this._processedSchema = this._schema(this._config!.fields);
-        });
-      }
+      this._tryConnect().then(() => {
+        this._processedSchema = this._schema(this._config!.fields);
+      });
     }
 
     if (changedProps.has("_templateResults")) {
@@ -179,6 +164,16 @@ export class FormCard extends FormBaseCard implements LovelaceCard {
     if (this._unsubRenderTemplates.has(templateKey) || !this.hass) {
       return;
     }
+    const variables = {
+      value: this._formData,
+      config: this._config,
+      user: this.hass.user!.name,
+      entity: undefined,
+    };
+    if (!fieldId && templateKey.split(".")[0] === "fields") {
+      fieldId = templateKey.split(".")[1];
+      variables.entity = this._getProcessedValue(`fields.${fieldId}.entity`);
+    }
 
     try {
       const sub = subscribeRenderTemplate(
@@ -191,10 +186,7 @@ export class FormCard extends FormBaseCard implements LovelaceCard {
         },
         {
           template,
-          variables: {
-            fields: this._value,
-            value: this._value,
-          },
+          variables,
           strict: true,
           report_errors: true,
         }
@@ -281,6 +273,7 @@ export class FormCard extends FormBaseCard implements LovelaceCard {
     }
 
     this._formData = computeInitialHaFormData(this._processedSchema);
+    this._updateInitialValue();
     return this._formData;
   }
 
@@ -326,9 +319,12 @@ export class FormCard extends FormBaseCard implements LovelaceCard {
           ></ha-form>
           ${this._errorMsg ? html`<div class="error">${this._errorMsg}</div>` : nothing}
           <div class="card-actions">
-            <ha-button @click=${this._resetChanges} .disabled=${!hasPendingChanges}>
-              ${this.hass.localize("ui.common.undo")}
-            </ha-button>
+            ${this._config.hide_undo_button ?
+              nothing :
+              html`<ha-button @click=${this._resetChanges} .disabled=${!hasPendingChanges}>
+                ${this.hass.localize("ui.common.undo")}
+              </ha-button>`
+            }
             <ha-progress-button @click=${this._handleSave}> ${save_label} </ha-progress-button>
           </div>
         </div>
@@ -376,21 +372,20 @@ export class FormCard extends FormBaseCard implements LovelaceCard {
 
   private _resetChanges(): void {
     if (this._initialValue) {
-      this._value = structuredClone(this._initialValue);
+      this._formData = structuredClone(this._initialValue);
 
-      fireEvent(this, "value-changed", { value: this._value });
+      fireEvent(this, "value-changed", { value: this._formData });
     }
   }
 
   private _formDataChanged(ev: CustomEvent) {
-    // ev.stopPropagation();
-    // const value = {
-    //   ...ev.detail.value,
-    // };
-    //
-    // this._value = value;
-    // fireEvent(this, "value-changed", { value });
-    this._formData = ev.detail.value;
+    ev.stopPropagation();
+    const value = {
+      ...ev.detail.value,
+    };
+
+    this._formData = value;
+    fireEvent(this, "value-changed", { value });
   }
 
   public async performAction(actionConfig: ActionConfig, value: any) {
@@ -430,7 +425,7 @@ export class FormCard extends FormBaseCard implements LovelaceCard {
       return;
     }
     const customLocalize = setupCustomlocalize(this.hass!);
-    const formData = this._value;
+    const formData = this._formData;
     const allRequiredInfoFilledIn =
       formData === undefined
         ? // If no data filled in, just check that any field is required
@@ -449,7 +444,7 @@ export class FormCard extends FormBaseCard implements LovelaceCard {
 
     try {
       // const processedValue = this._getProcessedFormValue()?.data;
-      const processedValue = this._value;
+      const processedValue = this._formData;
       await this.performAction(this._config.save_action, processedValue);
 
       button.actionSuccess();

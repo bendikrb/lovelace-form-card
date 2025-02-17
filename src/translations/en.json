@@ -51,6 +51,7 @@
         "save_label": "Save button label",
         "spread_values_to_data": "Spread form values to action data",
         "reset_on_submit": "Reset form on submit",
+        "hide_undo_button": "Hide undo button",
         "save_action": "Save action",
         "change_action": "Change action",
         "edit_ui": "Edit in visual editor",

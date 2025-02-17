@@ -23,5 +23,6 @@ export const GENERIC_LABELS = [
   "save_label",
   "spread_values_to_data",
   "reset_on_submit",
+  "hide_undo_button",
   "save_action",
 ];

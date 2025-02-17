@@ -50,6 +50,10 @@ const computeSchema = memoizeOne((t: LocalizeFunc): HaFormSchema[] => [
         name: "reset_on_submit",
         selector: { boolean: {} },
       },
+      {
+        name: "hide_undo_button",
+        selector: { boolean: {} },
+      },
       ...computeActionsFormSchema("save_action", actions),
     ],
   },

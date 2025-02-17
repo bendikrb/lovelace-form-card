@@ -14,6 +14,7 @@ export interface FormCardConfig extends LovelaceCardConfig {
   save_action?: ActionConfig;
   spread_values_to_data?: boolean;
   reset_on_submit?: boolean;
+  hide_undo_button?: boolean;
 }
 
 export type FormCardFields = Record<string, FormCardField>;
@@ -52,5 +53,6 @@ export const formCardConfigStruct = assign(
     save_action: optional(actionConfigStruct),
     spread_values_to_data: optional(boolean()),
     reset_on_submit: optional(boolean()),
+    hide_undo_button: optional(boolean()),
   })
 );
