@@ -11,13 +11,13 @@ import type { RenderTemplateResult } from "home-assistant-types/dist/data/ws-tem
 
 import type { LovelaceRowEditor } from "home-assistant-types/dist/panels/lovelace/types";
 import { FormBaseCard } from "../shared/form-base-card";
-import { fireEvent, subscribeRenderTemplate, applyToStrings } from "../utils";
+import { fireEvent, subscribeRenderTemplate, applyToStrings, hasTemplate } from "../utils";
 
 import { FORM_ENTITY_ROW_EDITOR_NAME, FORM_ENTITY_ROW_NAME } from "../const";
 
 import type { FormEntityRowConfig } from "./form-entity-row-config";
 
-const OPTIONS = ["icon", "name", "value", "entity"] as const;
+const OPTIONS = ["icon", "name", "default", "entity"] as const;
 
 @customElement(FORM_ENTITY_ROW_NAME)
 export class FormEntityRow extends FormBaseCard {
@@ -50,7 +50,7 @@ export class FormEntityRow extends FormBaseCard {
     return {
       type: "custom:form-entity-row",
       name: '{{ state_attr(config.entity, "friendly_name") }}',
-      value: "{{ states(config.entity) }}",
+      default: "{{ states(config.entity) }}",
       icon: hass.states[entity_id].attributes.icon ?? "",
       entity: entity_id,
       selector: {
@@ -85,7 +85,7 @@ export class FormEntityRow extends FormBaseCard {
 
   public isTemplate(key: string) {
     const value = this._config?.[key];
-    return value?.includes("{");
+    return hasTemplate(value);
   }
 
   protected _getValue(key: string) {
@@ -197,12 +197,12 @@ export class FormEntityRow extends FormBaseCard {
       this._getValue("name") ?? this._getValue("label") ?? entity?.attributes?.friendly_name ?? entity?.entity_id;
 
     const state_value = this._getValue("state") ?? base?.state;
-    const value = this._getValue("value") ?? state_value;
+    const default_value = this._getValue("default") ?? state_value;
     const description = this._getValue("description") ?? undefined;
 
     const schema = this._schema(this._config.selector, name, description);
     const data = {
-      value,
+      value: default_value,
     };
     const selectorName = this._config.selector ? `selector-${Object.keys(this._config.selector)[0]}` : "selector-text";
     const wrapperClasses = {
@@ -233,19 +233,6 @@ export class FormEntityRow extends FormBaseCard {
       <div id="staging">
         <hui-generic-entity-row .hass=${this.hass} .config=${this._config}> </hui-generic-entity-row>
       </div>
-      ${this.preview ? this._renderDebug() : nothing}
-    `;
-  }
-
-  private _renderDebug() {
-    if (!this._debugData) {
-      return nothing;
-    }
-    return html`
-      <ha-expansion-panel class="debug">
-        <span slot="header">Debug</span>
-        <ha-yaml-editor read-only auto-update .value=${this._debugData}></ha-yaml-editor>
-      </ha-expansion-panel>
     `;
   }
 

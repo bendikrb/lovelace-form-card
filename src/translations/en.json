@@ -43,6 +43,7 @@
       "fields": {
         "entity": "Entity",
         "value": "Value",
+        "default": "Default",
         "label": "Label",
         "description": "Description",
         "title": "Title",

@@ -43,6 +43,7 @@
       "fields": {
         "entity": "Entitet",
         "value": "Verdi",
+        "default": "Standardverdi",
         "label": "Tittel",
         "description": "Beskrivelse",
         "title": "Tittel",

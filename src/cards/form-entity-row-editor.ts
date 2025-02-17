@@ -17,12 +17,10 @@ import setupCustomlocalize from "../localize";
 import { computeActionsFormSchema } from "../shared/config";
 
 const actions: UiAction[] = ["none", "perform-action"];
-const computeSchema = memoizeOne((t: LocalizeFunc, entity: string): HaFormSchema[] => {
-  const _domain = computeDomain(entity);
+const computeSchema = memoizeOne((t: LocalizeFunc): HaFormSchema[] => {
   return [
     {
       name: "entity",
-      required: true,
       selector: { entity: {} },
     },
     {
@@ -43,10 +41,7 @@ const computeSchema = memoizeOne((t: LocalizeFunc, entity: string): HaFormSchema
       ],
     },
     {
-      name: "value",
-      description: {
-        suffix: "<code>state</code>",
-      },
+      name: "default",
       selector: { template: {} },
     },
     {
@@ -92,7 +87,7 @@ export class FormEntityRowEditor extends LitElement implements LovelaceRowEditor
       return nothing;
     }
     const localize = setupCustomlocalize(this.hass!);
-    const schema = computeSchema(localize, this._config.entity);
+    const schema = computeSchema(localize);
 
     return html`
       <ha-form
@@ -116,7 +111,7 @@ export class FormEntityRowEditor extends LitElement implements LovelaceRowEditor
       case "change_action":
       case "selector":
       case "spread_values_to_data":
-      case "value":
+      case "default":
         return customLocalize(`editor.card.fields.${schema.name}`);
       default:
         return this.hass!.localize(`ui.panel.lovelace.editor.card.generic.${schema.name}`);

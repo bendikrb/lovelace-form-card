@@ -116,11 +116,11 @@ save_action:
 |-------------------------|------------|----------------|-----------|--------------------------------------------------------------------------------------------|
 | `type`                  | `string`   | N/A            | ✅         | Must be set to `custom:form-entity-row`.                                                   |
 | `selector`              | `selector` | N/A            | ✅         | [Selector][home-assistant-selector-docs] configuration.                                    |
-| `entity`                | `string`   | N/A            | ✅         | Entity ID for the field.                                                                   |
+| `entity`                | `string`   | N/A            | ❌         | Entity ID for the field.                                                                   |
 | `label`                 | `string`   | N/A            | ❌         | Display name for the field.                                                                |
 | `default`               | `any`      | `entity` state | ❌         | Default value for the field. Will be set to `entity` (if specified) state if not provided. |
 | `icon`                  | `string`   | N/A            | ❌         | Icon for the field.                                                                        | 
-| `spread_values_to_data` | `boolean`  | `false`        | ❌         | If `true`, spreads form values into action payload directly.                               |
+| `spread_values_to_data` | `boolean`  | `false`        | ❌         | If `true`, spreads form values into action payload directly (under the key `value`).       |
 | `change_action`         | `action`   | N/A            | ❌         | Defines what [action][home-assistant-action-docs] occurs when the field is changed.        |
 
 If `entity` is provided, it will be used as the default value for `target` in your `change_action`.
