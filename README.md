@@ -108,6 +108,8 @@ save_action:
 | `reset_on_submit`       | `boolean` | `false` | ❌         | If `true`, resets the form on submit.                                                |
 | `spread_values_to_data` | `boolean` | `false` | ❌         | If `true`, spreads form values into action payload directly.                         |
 | `save_action`           | `action`  | N/A     | ❌         | Defines what [action][home-assistant-action-docs] occurs when the form is submitted. |
+| `save_label`            | `string`  | N/A     | ❌         | Label for the save button.                                                           |
+| `hide_undo_button`      | `boolean` | `false` | ❌         | If `true`, hides the undo button.                                                    |
 
 
 ### Entity row options
