@@ -105,16 +105,21 @@ export class FormBaseCard extends LitElement {
   }
 
   protected async _performAction(actionConfig: CallServiceActionConfig, value: Record<string, any>) {
-    if (Object.keys(value).length === 1 && Object.prototype.hasOwnProperty.call(value, "value")) {
+    const is_entity_row = this._formType === "entity-row";
+    if (is_entity_row && Object.prototype.hasOwnProperty.call(value, "value")) {
       value = value.value ?? "";
     }
-    const is_entity_row = this._formType === "entity-row";
 
     // noinspection JSDeprecatedSymbols
     const perform_action = actionConfig.perform_action ?? actionConfig.service;
     // noinspection JSDeprecatedSymbols
     const actionData = actionConfig.data ?? actionConfig.service_data ?? {};
-    const actionTarget = actionConfig.target ?? {};
+    let actionTarget: HassServiceTarget;
+    if ((!actionConfig.target || Object.keys(actionConfig.target).length === 0) && this._config?.entity) {
+      actionTarget = { entity_id: this._config.entity };
+    } else {
+      actionTarget = actionConfig.target ?? {};
+    }
 
     const [domain, service] = perform_action.split(".");
     const variables = {
@@ -147,7 +152,7 @@ export class FormBaseCard extends LitElement {
       {}
     );
 
-    if (this._config?.spread_values_to_data) {
+    if (this._config?.spread_values_to_data && !is_entity_row) {
       Object.entries(value).forEach(([key, v]) => {
         if (!serviceData[key]) {
           serviceData[key] = v;
@@ -161,15 +166,6 @@ export class FormBaseCard extends LitElement {
     ) {
       serviceData.value = value;
     }
-
-    // let serviceTarget: HassServiceTarget | undefined;
-    // if (actionConfig.target && Object.keys(actionConfig.target).length > 0) {
-    //   serviceTarget = actionConfig.target;
-    // } else if (entity_id) {
-    //   serviceTarget = { entity_id };
-    // } else if (this._config?.entity) {
-    //   serviceTarget = { entity_id: this._config.entity };
-    // }
 
     if (this.preview) {
       fireEvent(this, "form-card-submit-action", {
