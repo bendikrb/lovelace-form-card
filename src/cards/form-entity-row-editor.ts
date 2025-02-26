@@ -17,55 +17,56 @@ import setupCustomlocalize from "../localize";
 import { computeActionsFormSchema } from "../shared/config";
 
 const actions: UiAction[] = ["none", "perform-action"];
-const computeSchema = memoizeOne((t: LocalizeFunc): HaFormSchema[] => {
-  return [
-    {
-      name: "entity",
-      selector: { entity: {} },
-    },
-    {
-      type: "grid",
-      name: "",
-      schema: [
-        {
-          name: "name",
-          selector: { text: {} },
-        },
-        {
-          name: "icon",
-          selector: { icon: {} },
-          context: {
-            icon_entity: "entity",
-          },
-        },
-      ],
-    },
-    {
-      name: "default",
-      selector: { template: {} },
-    },
-    {
-      name: "selector",
-      selector: { selector: {} },
-    },
-    {
-      type: "expandable",
-      name: "",
-      title: t("editor.form.actions_heading.title"),
-      description: {
-        suffix: t("editor.form.actions_heading.description"),
+const computeSchema = memoizeOne(
+  (t: LocalizeFunc): HaFormSchema[] =>
+    [
+      {
+        name: "entity",
+        selector: { entity: {} },
       },
-      icon: "mdi:playlist-edit",
-      schema: [
-        {
-          name: "spread_values_to_data",
-          selector: { boolean: {} },
+      {
+        type: "grid",
+        name: "",
+        schema: [
+          {
+            name: "name",
+            selector: { text: {} },
+          },
+          {
+            name: "icon",
+            selector: { icon: {} },
+            context: {
+              icon_entity: "entity",
+            },
+          },
+        ],
+      },
+      {
+        name: "default",
+        selector: { template: {} },
+      },
+      {
+        name: "selector",
+        selector: { selector: {} },
+      },
+      {
+        type: "expandable",
+        name: "",
+        title: t("editor.form.actions_heading.title"),
+        description: {
+          suffix: t("editor.form.actions_heading.description"),
         },
-        ...computeActionsFormSchema("change_action", actions),
-      ],
-    },
-  ] as const;
-});
+        icon: "mdi:playlist-edit",
+        schema: [
+          {
+            name: "spread_values_to_data",
+            selector: { boolean: {} },
+          },
+          ...computeActionsFormSchema("change_action", actions),
+        ],
+      },
+    ] as const
+);
 
 @customElement("form-entity-row-editor")
 export class FormEntityRowEditor extends LitElement implements LovelaceRowEditor {

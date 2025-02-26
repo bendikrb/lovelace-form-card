@@ -319,12 +319,11 @@ export class FormCard extends FormBaseCard implements LovelaceCard {
           ></ha-form>
           ${this._errorMsg ? html`<div class="error">${this._errorMsg}</div>` : nothing}
           <div class="card-actions">
-            ${this._config.hide_undo_button ?
-              nothing :
-              html`<ha-button @click=${this._resetChanges} .disabled=${!hasPendingChanges}>
-                ${this.hass.localize("ui.common.undo")}
-              </ha-button>`
-            }
+            ${this._config.hide_undo_button
+              ? nothing
+              : html`<ha-button @click=${this._resetChanges} .disabled=${!hasPendingChanges}>
+                  ${this.hass.localize("ui.common.undo")}
+                </ha-button>`}
             <ha-progress-button @click=${this._handleSave}> ${save_label} </ha-progress-button>
           </div>
         </div>
