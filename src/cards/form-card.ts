@@ -50,6 +50,8 @@ export class FormCard extends FormBaseCard implements LovelaceCard {
 
   @state() private _yamlMode = false;
 
+  private _debounceTimeoutId?: number;
+
   setConfig(config: FormCardConfig) {
     if (!config.fields) {
       throw new Error("You need to define form fields");
@@ -89,7 +91,9 @@ export class FormCard extends FormBaseCard implements LovelaceCard {
   public static async getConfigElement(): Promise<LovelaceCardEditor> {
     await import("./form-card-editor");
     await loadHaComponents();
-    await loadDeveloperToolsTemplate();
+    if (!customElements.get("ha-yaml-editor")) {
+      await loadDeveloperToolsTemplate();
+    }
     return document.createElement(FORM_CARD_EDITOR_NAME) as LovelaceCardEditor;
   }
 
@@ -123,7 +127,7 @@ export class FormCard extends FormBaseCard implements LovelaceCard {
       templates.push([path.join("."), obj]);
     } else if (Array.isArray(obj)) {
       obj.forEach((item, index) => {
-        if (path?.[0] === "fields") {
+        if (path.length === 1 && path[0] === "fields") {
           index = item.name;
         }
         templates.push(...this._findTemplatesInObject(item, [...path, String(index)]));
@@ -233,8 +237,12 @@ export class FormCard extends FormBaseCard implements LovelaceCard {
   }
 
   private _schema(fields: FormCardField[]): HaFormSchema[] {
-    return fields.map((field) => {
+    const schemas: HaFormSchema[] = [];
+    for (const field of fields) {
       const templatedField = this._processTemplatedObject(field.name, field, "fields");
+      if (templatedField.hidden === true || templatedField.hidden === "true") {
+        continue;
+      }
       if (templatedField.entity && !templatedField.default) {
         const entity_id = templatedField.entity;
         const base = this.hass.states[entity_id];
@@ -263,8 +271,9 @@ export class FormCard extends FormBaseCard implements LovelaceCard {
           entity: templatedField.entity,
         },
       };
-      return schemaItem;
-    });
+      schemas.push(schemaItem);
+    }
+    return schemas;
   }
 
   private get _formDataProcessed() {
@@ -377,6 +386,13 @@ export class FormCard extends FormBaseCard implements LovelaceCard {
     }
   }
 
+  public disconnectedCallback(): void {
+    super.disconnectedCallback();
+    if (this._debounceTimeoutId) {
+      window.clearTimeout(this._debounceTimeoutId);
+    }
+  }
+
   private _formDataChanged(ev: CustomEvent) {
     ev.stopPropagation();
     const value = {
@@ -385,30 +401,70 @@ export class FormCard extends FormBaseCard implements LovelaceCard {
 
     this._formData = value;
     fireEvent(this, "value-changed", { value });
+    this._debounceRefreshValueTemplates();
+  }
+
+  private _debounceRefreshValueTemplates() {
+    if (this._debounceTimeoutId) {
+      window.clearTimeout(this._debounceTimeoutId);
+    }
+    this._debounceTimeoutId = window.setTimeout(() => {
+      void this._refreshValueTemplates();
+    }, 250);
+  }
+
+  private async _refreshValueTemplates(): Promise<void> {
+    if (!this._config) return;
+
+    const foundTemplates = this._findTemplatesInObject(this._config);
+    const valueTemplates = foundTemplates.filter(([_, template]) => template.includes("value"));
+
+    if (valueTemplates.length === 0) {
+      return;
+    }
+
+    const promises = valueTemplates.map(async ([path, template]) => {
+      const templateKey = this._getTemplateKey(undefined, path);
+      await this._tryDisconnectKey(templateKey);
+      await this._tryConnectTemplate(undefined, path, template);
+    });
+
+    await Promise.all(promises);
   }
 
   public async performAction(actionConfig: ActionConfig, value: any) {
-    if (actionConfig.action !== "call-service" && actionConfig.action !== "perform-action") {
+    const configAny = actionConfig as any;
+    let action = configAny.action;
+    let perform_action = configAny.perform_action ?? configAny.service;
+
+    if (action && action.includes(".")) {
+      perform_action = action;
+      action = "perform-action";
+    }
+
+    if (action !== "call-service" && action !== "perform-action") {
       return;
     }
     const variables = {
       value,
     };
 
-    // noinspection JSDeprecatedSymbols
-    const processedData: Promise<any>[] = Object.entries(actionConfig.data ?? actionConfig.service_data ?? {}).map(
-      async ([key, v]): Promise<(string | any)[]> => {
-        if (typeof v === "string" && hasTemplate(v)) {
-          return [key, (await this._renderTemplate(v, variables)).result];
-        }
-        return [key, v];
+    const actionData = configAny.data ?? configAny.service_data ?? {};
+    const processedData: Promise<any>[] = (
+      typeof actionData === "object" && actionData !== null ? Object.entries(actionData) : []
+    ).map(async ([key, v]): Promise<(string | any)[]> => {
+      if (typeof v === "string" && hasTemplate(v)) {
+        return [key, (await this._renderTemplate(v, variables)).result];
       }
-    );
+      return [key, v];
+    });
 
     const serviceData = (await Promise.all(processedData)).reduce((acc, [key, v]) => ({ ...acc, [key]: v }), {});
 
     const updatedActionConfig = {
       ...actionConfig,
+      action,
+      perform_action,
       serviceData,
     };
 

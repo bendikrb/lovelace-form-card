@@ -106,6 +106,10 @@ export class FormCardEditorFieldRow extends LitElement {
               name: "required",
               selector: { boolean: {} },
             },
+            {
+              name: "hidden",
+              selector: { template: {} },
+            },
           ],
         },
       ] as const
@@ -116,7 +120,8 @@ export class FormCardEditorFieldRow extends LitElement {
       return;
     }
     const field = this.field;
-    this._uiModeAvailable = !hasTemplate(field);
+    const { default: df, hidden, ...fieldCopy } = field;
+    this._uiModeAvailable = !hasTemplate(fieldCopy);
 
     if (!this._uiModeAvailable && !this._yamlMode) {
       this._yamlMode = true;
@@ -148,43 +153,67 @@ export class FormCardEditorFieldRow extends LitElement {
     const localize = setupCustomlocalize(this.hass!);
     const headerLabel = this._computeHeaderLabel(data);
 
+    const useDropdown = customElements.get("ha-dropdown") !== undefined;
+
     // @ts-ignore
     return html`
       <ha-card outlined>
         <ha-expansion-panel leftChevron>
           <h3 slot="header">${headerLabel}</h3>
           <slot name="icons" slot="icons"></slot>
-          <ha-button-menu
-            slot="icons"
-            @action=${this._handleAction}
-            @closed=${stopPropagation}
-            @click=${preventDefault}
-            fixed
-          >
-            <ha-icon-button slot="trigger" .label=${localize("ui.common.menu")} .path=${mdiDotsVertical}>
-            </ha-icon-button>
-            <ha-list-item graphic="icon" .disabled=${this.disabled || this.first}>
-              ${localize("ui.panel.config.automation.editor.move_up")}
-              <ha-svg-icon slot="graphic" .path=${mdiArrowUp}></ha-svg-icon
-            ></ha-list-item>
-
-            <ha-list-item graphic="icon" .disabled=${this.disabled || this.last}>
-              ${localize("ui.panel.config.automation.editor.move_down")}
-              <ha-svg-icon slot="graphic" .path=${mdiArrowDown}></ha-svg-icon>
-            </ha-list-item>
-
-            <ha-list-item graphic="icon" .disabled=${!this._uiModeAvailable}>
-              ${localize(`ui.panel.config.automation.editor.edit_${!this._yamlMode ? "yaml" : "ui"}`)}
-              <ha-svg-icon slot="graphic" .path=${mdiPlaylistEdit}></ha-svg-icon>
-            </ha-list-item>
-
-            <li divider role="separator"></li>
-
-            <ha-list-item class="warning" graphic="icon" .disabled=${this.disabled}>
-              ${localize("editor.card.generic.delete")}
-              <ha-svg-icon class="warning" slot="graphic" .path=${mdiDelete}></ha-svg-icon>
-            </ha-list-item>
-          </ha-button-menu>
+          ${useDropdown
+            ? html`
+                <ha-dropdown slot="icons" placement="bottom-end" @click=${stopPropagation}>
+                  <ha-icon-button slot="trigger" .label=${localize("ui.common.menu")} .path=${mdiDotsVertical}>
+                  </ha-icon-button>
+                  <ha-dropdown-item .disabled=${this.disabled || this.first} @click=${this._moveUp}>
+                    ${localize("ui.panel.config.automation.editor.move_up")}
+                    <ha-svg-icon slot="icon" .path=${mdiArrowUp}></ha-svg-icon>
+                  </ha-dropdown-item>
+                  <ha-dropdown-item .disabled=${this.disabled || this.last} @click=${this._moveDown}>
+                    ${localize("ui.panel.config.automation.editor.move_down")}
+                    <ha-svg-icon slot="icon" .path=${mdiArrowDown}></ha-svg-icon>
+                  </ha-dropdown-item>
+                  <ha-dropdown-item .disabled=${!this._uiModeAvailable} @click=${this._toggleYamlMode}>
+                    ${localize(`ui.panel.config.automation.editor.edit_${!this._yamlMode ? "yaml" : "ui"}`)}
+                    <ha-svg-icon slot="icon" .path=${mdiPlaylistEdit}></ha-svg-icon>
+                  </ha-dropdown-item>
+                  <li divider role="separator"></li>
+                  <ha-dropdown-item class="warning" .disabled=${this.disabled} @click=${this._deleteField}>
+                    ${localize("editor.card.generic.delete")}
+                    <ha-svg-icon class="warning" slot="icon" .path=${mdiDelete}></ha-svg-icon>
+                  </ha-dropdown-item>
+                </ha-dropdown>
+              `
+            : html`
+                <ha-button-menu
+                  slot="icons"
+                  @action=${this._handleAction}
+                  @closed=${stopPropagation}
+                  @click=${preventDefault}
+                  fixed
+                >
+                  <ha-icon-button slot="trigger" .label=${localize("ui.common.menu")} .path=${mdiDotsVertical}>
+                  </ha-icon-button>
+                  <ha-list-item graphic="icon" .disabled=${this.disabled || this.first}>
+                    ${localize("ui.panel.config.automation.editor.move_up")}
+                    <ha-svg-icon slot="graphic" .path=${mdiArrowUp}></ha-svg-icon>
+                  </ha-list-item>
+                  <ha-list-item graphic="icon" .disabled=${this.disabled || this.last}>
+                    ${localize("ui.panel.config.automation.editor.move_down")}
+                    <ha-svg-icon slot="graphic" .path=${mdiArrowDown}></ha-svg-icon>
+                  </ha-list-item>
+                  <ha-list-item graphic="icon" .disabled=${!this._uiModeAvailable}>
+                    ${localize(`ui.panel.config.automation.editor.edit_${!this._yamlMode ? "yaml" : "ui"}`)}
+                    <ha-svg-icon slot="graphic" .path=${mdiPlaylistEdit}></ha-svg-icon>
+                  </ha-list-item>
+                  <li divider role="separator"></li>
+                  <ha-list-item class="warning" graphic="icon" .disabled=${this.disabled}>
+                    ${localize("editor.card.generic.delete")}
+                    <ha-svg-icon class="warning" slot="graphic" .path=${mdiDelete}></ha-svg-icon>
+                  </ha-list-item>
+                </ha-button-menu>
+              `}
           <div class=${classMap({ "card-content": true })}>
             ${this._warnings
               ? html`<ha-alert
@@ -235,6 +264,27 @@ export class FormCardEditorFieldRow extends LitElement {
     if (!this._yamlMode) {
       this._yamlMode = true;
     }
+  }
+
+  private _moveUp(ev: Event) {
+    ev.stopPropagation();
+    fireEvent(this, "move-up");
+  }
+
+  private _moveDown(ev: Event) {
+    ev.stopPropagation();
+    fireEvent(this, "move-down");
+  }
+
+  private _toggleYamlMode(ev: Event) {
+    ev.stopPropagation();
+    this._yamlMode = !this._yamlMode;
+    this.expand();
+  }
+
+  private _deleteField(ev: Event) {
+    ev.stopPropagation();
+    this._onDelete();
   }
 
   private async _handleAction(ev: CustomEvent) {
@@ -406,6 +456,7 @@ export class FormCardEditorFieldRow extends LitElement {
           margin: 0;
           font-size: inherit;
           font-weight: inherit;
+          flex-grow: 1;
         }
 
         .action-icon {

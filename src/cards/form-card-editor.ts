@@ -16,14 +16,14 @@ import { formCardConfigStruct } from "./form-card-config";
 import setupCustomlocalize from "../localize";
 
 import type { FormCardEditorFields } from "../components/form-card-editor-fields";
-import { fireEvent, loadConfigDashboard, loadHaComponents } from "../utils";
+import { fireEvent, loadConfigDashboard, loadHaComponents, hasTemplate } from "../utils";
 import { computeActionsFormSchema } from "../shared/config";
 import { GENERIC_LABELS } from "../utils/form/generic-fields";
 
 import "../components/form-card-editor-fields";
 
 const actions: UiAction[] = ["none", "perform-action"];
-const computeSchema = memoizeOne((t: LocalizeFunc): HaFormSchema[] => [
+const computeSchema = memoizeOne((t: LocalizeFunc, action: any): HaFormSchema[] => [
   {
     name: "title",
     selector: {
@@ -54,7 +54,14 @@ const computeSchema = memoizeOne((t: LocalizeFunc): HaFormSchema[] => [
         name: "hide_undo_button",
         selector: { boolean: {} },
       },
-      ...computeActionsFormSchema("save_action", actions),
+      ...(action && (action.action?.includes(".") || hasTemplate(action))
+        ? [
+            {
+              name: "save_action",
+              selector: { object: {} },
+            },
+          ]
+        : computeActionsFormSchema("save_action", actions)),
     ],
   },
 ]);
@@ -98,7 +105,12 @@ export class FormCardEditor extends LitElement implements LovelaceCardEditor {
   }
 
   public setConfig(config: FormCardConfig): void {
-    assert(config, formCardConfigStruct);
+    try {
+      assert(config, formCardConfigStruct);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn("Lovelace Form Card config assertion failed:", err);
+    }
     this._config = config;
   }
 
@@ -116,7 +128,7 @@ export class FormCardEditor extends LitElement implements LovelaceCardEditor {
       return nothing;
     }
     const localize = setupCustomlocalize(this.hass!);
-    const schema = computeSchema(localize);
+    const schema = computeSchema(localize, this._config.save_action);
 
     return html`
       <div class="header">
@@ -133,13 +145,9 @@ export class FormCardEditor extends LitElement implements LovelaceCardEditor {
       ></form-card-editor-fields>
       ${!("fields" in this._config)
         ? html`
-            <ha-button
-              outlined
-              @click=${this._addFields}
-              .disabled=${this.disabled}
-              .label=${localize("editor.form.field.add_fields")}
-            >
+            <ha-button outlined @click=${this._addFields} .disabled=${this.disabled}>
               <ha-icon icon="mdi:form-text-box" slot="icon"></ha-icon>
+              ${localize("editor.form.field.add_fields")}
             </ha-button>
           `
         : nothing}
@@ -181,7 +189,7 @@ export class FormCardEditor extends LitElement implements LovelaceCardEditor {
   static get styles(): CSSResultGroup {
     return [
       css`
-        :host {|
+        :host {
           display: block;
         }
 

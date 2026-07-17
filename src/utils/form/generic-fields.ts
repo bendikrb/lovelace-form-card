@@ -13,6 +13,7 @@ export const GENERIC_LABELS = [
   "use_entity_picture",
   "collapsible_controls",
   "disabled",
+  "hidden",
   "show_state",
   "value",
   "entity",

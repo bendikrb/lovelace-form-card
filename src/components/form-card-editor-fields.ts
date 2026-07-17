@@ -25,6 +25,31 @@ export class FormCardEditorFields extends LitElement {
 
   private _focusLastFieldOnChange = false;
 
+  protected willUpdate(changedProperties: PropertyValues) {
+    super.willUpdate(changedProperties);
+    if (changedProperties.has("fields")) {
+      const oldFields = changedProperties.get("fields") as FormCardField[] | undefined;
+      const newFields = this.fields;
+      if (oldFields && newFields) {
+        if (oldFields.length === newFields.length) {
+          newFields.forEach((newField, idx) => {
+            const oldField = oldFields[idx];
+            if (this._fieldKeys.has(oldField)) {
+              this._fieldKeys.set(newField, this._fieldKeys.get(oldField)!);
+            }
+          });
+        } else {
+          newFields.forEach((newField) => {
+            const oldField = oldFields.find((f) => f.name === newField.name);
+            if (oldField && this._fieldKeys.has(oldField)) {
+              this._fieldKeys.set(newField, this._fieldKeys.get(oldField)!);
+            }
+          });
+        }
+      }
+    }
+  }
+
   public connectedCallback() {
     super.connectedCallback();
     void loadHaComponents();
@@ -145,13 +170,9 @@ export class FormCardEditorFields extends LitElement {
                 </form-card-editor-field-row>
               `
             )}
-            <ha-button
-              outlined
-              @click=${this._addField}
-              .disabled=${this.disabled}
-              .label=${localize("editor.form.field.add_field")}
-            >
+            <ha-button outlined @click=${this._addField} .disabled=${this.disabled}>
               <ha-svg-icon .path=${mdiPlus} slot="icon"></ha-svg-icon>
+              ${localize("editor.form.field.add_field")}
             </ha-button>
           </div>
         </ha-sortable>

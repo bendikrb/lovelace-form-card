@@ -12,13 +12,13 @@ import type { UiAction } from "home-assistant-types/dist/panels/lovelace/compone
 import type { ConfigChangedEvent } from "home-assistant-types/dist/panels/lovelace/editor/hui-element-editor";
 import { computeDomain } from "../utils/entity/compute_domain";
 
-import { fireEvent, loadHaComponents } from "../utils";
+import { fireEvent, loadHaComponents, hasTemplate } from "../utils";
 import setupCustomlocalize from "../localize";
 import { computeActionsFormSchema } from "../shared/config";
 
 const actions: UiAction[] = ["none", "perform-action"];
 const computeSchema = memoizeOne(
-  (t: LocalizeFunc): HaFormSchema[] =>
+  (t: LocalizeFunc, action: any): HaFormSchema[] =>
     [
       {
         name: "entity",
@@ -62,7 +62,14 @@ const computeSchema = memoizeOne(
             name: "spread_values_to_data",
             selector: { boolean: {} },
           },
-          ...computeActionsFormSchema("change_action", actions),
+          ...(action && (action.action?.includes(".") || hasTemplate(action))
+            ? [
+                {
+                  name: "change_action",
+                  selector: { object: {} },
+                },
+              ]
+            : computeActionsFormSchema("change_action", actions)),
         ],
       },
     ] as const
@@ -88,7 +95,7 @@ export class FormEntityRowEditor extends LitElement implements LovelaceRowEditor
       return nothing;
     }
     const localize = setupCustomlocalize(this.hass!);
-    const schema = computeSchema(localize);
+    const schema = computeSchema(localize, (this._config as any).change_action);
 
     return html`
       <ha-form

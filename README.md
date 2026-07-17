@@ -139,17 +139,18 @@ If `entity` is provided, it will be used as the default value for `target` in yo
 
 Each element in the `fields` array supports the following options:
 
-| Parameter     | Type       | Default        | Required? | Description                                                                                |
-|---------------|------------|----------------|-----------|--------------------------------------------------------------------------------------------|
-| `name`        | `string`   | N/A            | ✅         | Unique identifier for the field.                                                           |
-| `label`       | `string`   | N/A            | ❌         | Display name for the field.                                                                |
-| `entity`      | `string`   | N/A            | ❌         | Entity ID for the field.                                                                   |
-| `selector`    | `selector` | N/A            | ✅         | [Selector][home-assistant-selector-docs] configuration.                                    |
-| `default`     | `any`      | `entity` state | ❌         | Default value for the field. Will be set to `entity` (if specified) state if not provided. |
-| `description` | `string`   | N/A            | ❌         | Description for the field.                                                                 |
-| `placeholder` | `string`   | N/A            | ❌         | Placeholder text for the field.                                                            |
-| `required`    | `boolean`  | `false`        | ❌         | Marks the field as required.                                                               |
-| `disabled`    | `boolean`  | `false`        | ❌         | Whether the field is disabled.                                                             |
+| Parameter     | Type               | Default        | Required? | Description                                                                                |
+|---------------|--------------------|----------------|-----------|--------------------------------------------------------------------------------------------|
+| `name`        | `string`           | N/A            | ✅         | Unique identifier for the field.                                                           |
+| `label`       | `string`           | N/A            | ❌         | Display name for the field.                                                                |
+| `entity`      | `string`           | N/A            | ❌         | Entity ID for the field.                                                                   |
+| `selector`    | `selector`         | N/A            | ✅         | [Selector][home-assistant-selector-docs] configuration.                                    |
+| `default`     | `any`              | `entity` state | ❌         | Default value for the field. Will be set to `entity` (if specified) state if not provided. |
+| `description` | `string`           | N/A            | ❌         | Description for the field.                                                                 |
+| `placeholder` | `string`           | N/A            | ❌         | Placeholder text for the field.                                                            |
+| `required`    | `boolean`          | `false`        | ❌         | Marks the field as required.                                                               |
+| `disabled`    | `boolean`          | `false`        | ❌         | Whether the field is disabled.                                                             |
+| `hidden`      | `boolean`/`string` | `false`        | ❌         | Conditionally hides the field. Supports Jinja templates.                                   |
 
 
 All options accept [jinja2 templates][home-assistant-template-docs].
@@ -158,6 +159,7 @@ The templates have access to a few special variables. Those are:
 
   - `config` - an object containing the card configuration
   - `user` - the username of the currently logged in user
+  - `value` - a dictionary of current form input values (useful for fields that change dynamically based on other inputs)
 
 For entity rows and fields with `entity` specified, the following variables are also available:
   - `entity` - the entity ID of the field
@@ -224,6 +226,54 @@ entities:
 ```
 </details>
 
+---
+
+### Dynamic Form with Conditional Fields & Action Templates
+
+This example demonstrates how to conditionally show/hide fields dynamically and make action calls or payloads resolve dynamically based on current form values.
+
+<details><summary>YAML:</summary>
+
+```yaml
+type: custom:form-card
+title: Living Room Light Controller
+fields:
+  - name: operation
+    label: Light Operation
+    required: true
+    default: "turn_on"
+    selector:
+      select:
+        options:
+          - label: Turn On
+            value: "turn_on"
+          - label: Turn Off
+            value: "turn_off"
+  - name: brightness
+    label: Brightness
+    required: true
+    default: 50
+    selector:
+      number:
+        min: 1
+        max: 100
+        step: 1
+        unit_of_measurement: "%"
+    # Hide the brightness slider if the operation is set to turn off the light
+    hidden: "{{ value.operation == 'turn_off' }}"
+save_action:
+  # The service call dynamically resolves to light.turn_on or light.turn_off
+  action: "light.{{ value.operation }}"
+  target:
+    entity_id: light.living_room
+  # Only pass brightness payload if we are turning the light on
+  data:
+    brightness_pct: |
+      {% if value.operation == 'turn_on' %}
+        {{ value.brightness }}
+      {% endif %}
+```
+</details>
 
 ---
 <!-- Badges -->
