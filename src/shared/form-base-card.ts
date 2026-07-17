@@ -110,33 +110,50 @@ export class FormBaseCard extends LitElement {
       value = value.value ?? "";
     }
 
+    const action = actionConfig.action;
     // noinspection JSDeprecatedSymbols
-    const perform_action = actionConfig.perform_action ?? actionConfig.service;
+    let perform_action = actionConfig.perform_action ?? actionConfig.service;
+
+    if (action && action.includes(".")) {
+      perform_action = action;
+    }
+
     // noinspection JSDeprecatedSymbols
     const actionData = actionConfig.data ?? actionConfig.service_data ?? {};
-    let actionTarget: HassServiceTarget;
+    let actionTarget: any;
     if ((!actionConfig.target || Object.keys(actionConfig.target).length === 0) && this._config?.entity) {
       actionTarget = { entity_id: this._config.entity };
     } else {
       actionTarget = actionConfig.target ?? {};
     }
 
-    const [domain, service] = perform_action.split(".");
+    if (typeof actionTarget === "string") {
+      actionTarget = { entity_id: actionTarget };
+    }
+
     const variables = {
       value,
       config: this._config,
     };
 
+    if (typeof perform_action === "string" && hasTemplate(perform_action)) {
+      perform_action = (await this._renderTemplate(perform_action, variables)).result;
+    }
+
+    const [domain, service] = perform_action.split(".");
+
     // Render all entries in service data as templates
-    const processedData: Promise<any>[] = Object.entries(actionData).map(
-      async ([key, v]): Promise<(string | any)[]> => {
-        if (typeof v === "string" && hasTemplate(v)) {
-          return [key, (await this._renderTemplate(v, variables)).result];
-        }
-        return [key, v];
+    const processedData: Promise<any>[] = (
+      typeof actionData === "object" && actionData !== null ? Object.entries(actionData) : []
+    ).map(async ([key, v]): Promise<(string | any)[]> => {
+      if (typeof v === "string" && hasTemplate(v)) {
+        return [key, (await this._renderTemplate(v, variables)).result];
       }
-    );
-    const processedTarget = Object.entries(actionTarget).map(async ([key, v]): Promise<(string | any)[]> => {
+      return [key, v];
+    });
+    const processedTarget = (
+      typeof actionTarget === "object" && actionTarget !== null ? Object.entries(actionTarget) : []
+    ).map(async ([key, v]): Promise<(string | any)[]> => {
       if (typeof v === "string" && hasTemplate(v)) {
         return [key, (await this._renderTemplate(v, variables)).result];
       }

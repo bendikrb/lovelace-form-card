@@ -29,6 +29,7 @@ export interface FormCardField {
   placeholder?: string;
   disabled?: boolean;
   required?: boolean;
+  hidden?: any;
 }
 
 export const fieldConfigStruct = object({
@@ -41,6 +42,7 @@ export const fieldConfigStruct = object({
   disabled: optional(boolean()),
   placeholder: optional(string()),
   required: optional(boolean()),
+  hidden: optional(any()),
 });
 
 export const formCardConfigStruct = assign(

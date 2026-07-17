@@ -49,6 +49,7 @@
         "title": "Title",
         "layout": "Layout",
         "disabled": "Disabled",
+        "hidden": "Hidden",
         "save_label": "Save button label",
         "spread_values_to_data": "Spread form values to action data",
         "reset_on_submit": "Reset form on submit",
